@@ -1,0 +1,238 @@
+<?php
+  include '../../datos/mysql.php';  
+  require('../../fpdf/fpdf.php');
+  
+  $link = conectar();
+  
+  $pdtoImpresionSelect = $link->query("
+    SELECT pdtodiseno.diseno,
+           pdtoimpresion.notintas,
+           pdtoimpresion.impresion,
+           pdtosustrato.sustrato
+      FROM pdtodiseno,
+           pdtoimpresion,
+           pdtosustrato
+     WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = '".$_GET['cdgimpresion']."' AND
+           pdtosustrato.cdgsustrato = pdtoimpresion.cdgsustrato");
+
+  if ($pdtoImpresionSelect->num_rows > 0)
+  { $regPdtoImpresion = $pdtoImpresionSelect->fetch_object();
+
+    $_SESSION['oplist_diseno'] = $regPdtoImpresion->diseno;
+    $_SESSION['oplist_notintas'] = $regPdtoImpresion->notintas;
+    $_SESSION['oplist_impresion'] = $regPdtoImpresion->impresion;
+    $_SESSION['oplist_sustrato'] = $regPdtoImpresion->sustrato; 
+
+    $oplist_notintas = $regPdtoImpresion->notintas; } 
+
+  // Buscar máquina de impresión
+  $prodMaquinaSelect = $link->query("
+    SELECT * FROM prodmaquina 
+     WHERE cdgmaquina = '".$_GET['cdgmaquina']."'");
+  
+  if ($prodMaquinaSelect->num_rows > 0)
+  { $regProdMaquina = $prodMaquinaSelect->fetch_object();
+
+    $_SESSION['oplist_idmaquina'] = $regProdMaquina->idmaquina;
+    $_SESSION['oplist_maquina'] = $regProdMaquina->maquina; }
+
+  // Filtro de rgistros (Pantones)
+  $pdtoPantoneSelect = $link->query("
+    SELECT pdtoimpresiontnt.cdgtinta,
+           pdtopantone.pantone
+      FROM pdtoimpresion,
+           pdtoimpresiontnt,
+           pdtopantone
+     WHERE pdtopantone.cdgpantone = pdtoimpresiontnt.cdgtinta AND
+           pdtoimpresiontnt.cdgimpresion = pdtoimpresion.cdgimpresion AND
+           pdtoimpresion.cdgimpresion = '".$_GET['cdgimpresion']."'
+  ORDER BY pdtoimpresiontnt.notinta");
+
+  if ($pdtoPantoneSelect->num_rows > 0)
+  { $item = 0;
+    
+    while ($regPdtoPantone = $pdtoPantoneSelect->fetch_object())
+    { $item++;
+
+      $pdtoPantone_pantone[$item] = $regPdtoPantone->pantone; }
+
+    $nPantones = $item; }
+  // Final del filtro de registros  
+
+  // Buscar los lotes
+  $prodLoteSelect = $link->query("
+    SELECT proglote.tarima,
+           proglote.idlote,
+           proglote.lote,
+           proglote.longitud,
+           proglote.peso,
+    CONCAT(prodlote.serie,'.',prodlote.noop) AS noop
+      FROM proglote, 
+           prodlote, 
+           prodloteope
+     WHERE proglote.cdglote = prodlote.cdglote AND
+           prodlote.cdglote = prodloteope.cdglote AND
+           prodlote.cdgproducto = '".$_GET['cdgimpresion']."' AND
+          (prodloteope.cdgoperacion = '10001' AND 
+           prodloteope.cdgmaquina = '".$_GET['cdgmaquina']."' AND 
+           prodloteope.cdgjuego = '".$_GET['cdgjuego']."' AND 
+           prodlote.fchprograma = '".$_GET['fchprograma']."')
+  ORDER BY prodlote.noop");
+
+  if ($prodLoteSelect->num_rows > 0)
+  { $idLote = 1;
+    while ($regProdLote = $prodLoteSelect->fetch_object())
+    { $oplist_tarima[$idLote] = $regProdLote->tarima;
+      $oplist_idlote[$idLote] = $regProdLote->idlote;
+      $oplist_lote[$idLote] = $regProdLote->lote;
+      $oplist_longitud[$idLote] = $regProdLote->longitud;
+      $oplist_peso[$idLote] = $regProdLote->peso;
+      $oplist_noop[$idLote] = $regProdLote->noop;
+
+      $idLote++; }
+
+    $nLotes = $prodLoteSelect->num_rows; }
+
+  // Reformar las clases
+  class PDF extends FPDF
+  { // Cabecera de página
+    function Header()
+    { global $oplist_ancho;
+
+      $this->SetFont('Arial','B',8);
+      $this->SetFillColor(255,153,0);
+
+      if (file_exists('../../img_sistema/logonew.jpg')==true)
+      { $this->Image('../../img_sistema/logonew.jpg',10,0,0,32); }
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Documento'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('Inspección de Calidad de impresión'),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Código'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('CC-FR01'),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Versión'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('1.0'),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Revisión'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('03 de Julio de 2015'),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Responsable'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('Control de Calidad'),0,1,'L'); 
+
+      $this->Ln(4);
+
+      $this->SetFont('Arial','I',8);
+      $this->Cell(40,4,utf8_decode('Fecha de la orden'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','B',8);
+      $this->Cell(40,4,$_GET['fchprograma'],0,1,'L');
+
+      $this->SetFont('Arial','I',8);
+      $this->Cell(40,4,utf8_decode('Diseño'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','B',8);
+      $this->Cell(60,4,$_SESSION['oplist_diseno'],0,1,'L');
+
+      $this->SetFont('Arial','I',8);
+      $this->Cell(40,4,utf8_decode('Impresión'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','B',8);
+      $this->Cell(60,4,$_SESSION['oplist_impresion'],0,1,'L');
+
+      $this->SetFont('Arial','I',8);
+      $this->Cell(40,4,utf8_decode('Máquina de impresión'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);  
+      $this->SetFont('Arial','B',8);
+      $this->Cell(60,4,$_SESSION['oplist_maquina'],0,1,'L');
+
+      $this->SetFont('Arial','I',8);
+      $this->Cell(40,4,utf8_decode('Sustrato'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','B',8);
+      $this->Cell(60,4,$_SESSION['oplist_sustrato'],0,1,'L');
+
+      $this->Ln(4); }
+
+    // Pie de página
+    function Footer()
+    { $this->SetY(-10);
+      $this->SetFont('arial','',8);
+      $this->Cell(0,3,utf8_decode('Página '.$this->PageNo().' de {nb}'),0,1,'R');
+      $this->SetFont('arial','B',8);
+      $this->Cell(0,3,'Consultado el '.date("Y-m-d").' a las '.date("G:i:s"),0,1,'R'); }
+  }
+
+  // Generar el archivo
+  $pdf = new PDF('P','mm','letter');
+  $pdf->SetDisplayMode(real, continuous);
+  $pdf->AddFont('3of9','','free3of9.php');
+  $pdf->AliasNbPages();
+
+  $pdf->AddPage();
+  $pdf->SetFillColor(255,153,0);
+  
+  for ($item = 1; $item <= $nLotes; $item++)
+  { $pdf->Cell(5,4,$item,0,0,'C');
+    $pdf->SetFont('Arial','B',8);
+    $pdf->Cell(10,4,'NoOP',0,0,'R');
+    $pdf->SetFont('Arial','',10);
+    $pdf->Cell(20,4,$oplist_noop[$item],0,0,'L');
+    $pdf->SetFont('Arial','B',8);
+    $pdf->Cell(20,4,'Supervisor',0,0,'R');
+    $pdf->Cell(50,4,'________________________________',0,0,'L');
+    $pdf->Cell(36,4,'Inspector de calidad',0,0,'R');
+    $pdf->Cell(50,4,'________________________________',0,1,'L');
+
+    $pdf->Ln(2);
+
+    $pdf->SetFont('Arial','B',8);
+    $pdf->Cell(15,4,'Tintas',0,0,'R');
+    $pdf->Cell(50,4,'Pantone',1,0,'C');
+    $pdf->Cell(20,4,utf8_decode('Medición'),1,0,'C');
+    $pdf->Cell(20,4,'Anclaje',1,0,'C');
+    $pdf->Cell(90,4,'Nota',1,1,'C');
+
+    $pdf->SetFont('Arial','I',8);
+    for ($subItem = 1; $subItem <= $oplist_notintas; $subItem++)
+    { $pdf->Cell(15,4,'',0,0,'C');
+      $pdf->Cell(50,4,$pdtoPantone_pantone[$subItem],1,0,'L');
+      $pdf->Cell(20,4,'',1,0,'C');
+      $pdf->Cell(20,4,'',1,0,'C');
+      $pdf->Cell(90,4,'',1,1,'C'); }
+
+    $pdf->Ln(2);
+
+    $pdf->SetFont('Arial','B',8);
+    $pdf->Cell(5,4,'',0,0,'C');
+    $pdf->Cell(98,4,utf8_decode('Inspección visual general de impresión  ____ aprueba ____ no aprueba'),0,0,'L',true);   
+    $pdf->Cell(22,4,'Fecha y hora',0,0,'R');
+    $pdf->Cell(38,4,'_____________________',0,0,'L');
+    $pdf->Cell(8,4,'Merma',0,0,'R');
+    $pdf->Cell(20,4,'___________ (kg)',0,1,'L');    
+
+    $pdf->Ln(6); }
+
+  $pdf->SetFont('Arial','B',8);
+  $pdf->Cell(24,4,'Observaciones',0,1,'L');
+  $pdf->Cell(0,12,'',1,1,'C');
+
+  ////////////////////////////////////////////////
+  $pdf->Output('IC-FR01.pdf', 'I');
+?>

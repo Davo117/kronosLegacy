@@ -1,0 +1,3 @@
+<?php
+  $bloques = ['Recursos Humanos', 'Productos', 'Ventas', 'Compras', 'Producción', 'Inspección de calidad', 'Empaque', 'Mantenimiento', 'Sistema'];
+?>

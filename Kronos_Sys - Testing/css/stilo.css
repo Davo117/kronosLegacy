@@ -1,0 +1,46 @@
+.decrip
+{
+	width:500px;
+	font:bold 15px Sansation;
+	background-color:#91D38A;
+	padding:10px;
+}
+input[type="submit"]
+{
+	background-color:#DC4836;
+	width:100px;
+	height:35px;
+	margin-top:10px;
+	font:bold 15px Sansation Light;
+	 -webkit-transition-duration: 0.2s;
+  -o-transition-property: background-color, color, left;
+  -o-transition-duration: 1s;
+}
+input[type="submit"]:hover
+{
+	background-color:#DC4836;
+	width:100px;
+	height:35px;
+	margin-top:10px;
+	font:bold 20px Sansation Light;
+	 -webkit-transition-duration: 0.2s;
+  -o-transition-property: background-color, color, left;
+  -o-transition-duration: 1s;
+}
+p
+{
+	font-size:20px;
+	border-radius:10px;
+	background-color:#9BF58B;
+	width:200px;
+}
+.contenedor
+{
+	
+
+}
+.ne
+{
+	background-color:#CD726D;
+
+}

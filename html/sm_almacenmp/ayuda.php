@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ayuda</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+
+  include '../datos/mysql.php';
+  $link = conectar(); 
+
+  m3nu_almacenmp();
+
+  $sistModulo_cdgmodulo = '50010';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_POST['textusername'] AND $_POST['textpassword']) 
+    { val1dat3($_POST['textusername'], $_POST['textpassword']); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); 
+    } else 
+    { echo '
+      <div id="loginform">
+        <form id="login" action="ayuda.php" method="post">';
+
+      log1n();
+
+      echo '
+        </form>
+      </div>
+    </div>
+  </body>
+</html>'; 
+
+      exit; }
+
+    if (substr($sistModulo_permiso,0,1) == 'r')
+    { echo '
+    <h2><a name="Bloques">Bloques</a></h2>
+    <p>En este módulo se administran los bloques de materia prima para cumplir con nuestro requisito de trazabilidad, ingresando la siguiente información:</p>
+    
+    <ul>
+      <li>Identificador</li>
+      <li>Descripción</li>
+      <li>Sustrato</li>
+      <li>Fecha de recepción</li>
+    </ul>
+
+    <p>Este módulo es el primero de dos pasos para dar de alta los lotes de materia prima, ya que aquí solo se ingresan los datos generales de un bloque de materia prima solicitada al proveedor. El siguiente paso se realiza en el módulo Lotes.</p>
+
+    <h2><a name="Lotes">Lotes</a></h2>
+    <p>En este módulo se administran los diferentes lotes de cada bloque, debido a que previamente se asigno un tipo de sustrato al bloque, la forma de administrar los lotes se lleva acabo ingresando la siguiente información:</p>
+    
+    <ul>
+      <li>Bloque</li>
+      <li>Número de lote</li>
+      <li>Referecia (Identificador del proveedor)</li>
+      <li>Longitud</li>
+      <li>Peso</li>
+      <li>Tarima (AAMMDD-XXXX.MMM-XX)</li>
+        <ul>
+          <li>Fecha de recepción AAMMDD</li>
+          <li>Orden de compra XXXX</li>
+          <li>Medida MMM</li>
+          <li>Número de tarima XX</li>
+        </ul>
+    </ul>
+    
+    <p>Como podemos notar, cada lote es único dentro del sistema es por ello que en caso de no contar con una referencia (Identificador del proveedor) debe definirse la forma de generar una internamente. En el caso del dato Tarima este puede ser diferente al recomendado lo mostrato previamente es solo un ejemplo.</p>
+
+    <h2><a name="Liberacion">Liberación de lotes</a></h2>
+    <p>En este módulo se liberan los lotes de materia prima para su programación por parte del área de producción, una vez superadas las pruebas establecidas en su inspección de calidad, se ingresa la siguiente información:</p>
+
+    <ul>
+      <li>Lote</li>
+      <li>Peso</li>      
+    </ul>
+
+    <p>Una vez ingresadada la referencia o bien el código de barras que viene en la etiqueta de cada lote el sistema devuelve la información del mismo y nos permite ajustar el peso en kilos cuando lo indicado por el proveedor no es correcto.</p>
+
+    <h2><a name="Elementos">Elementos</a></h2>
+    <p>En este módulo se ingresan todos los elementos de materia prima que se deseen explosionar, los cuales serán desplegados en el módulo <em>Consumos</em> dentro del submenu <em>Productos</em>, se ingresa la siguiente información:</p>
+
+    <ul>
+      <li>Identificador</li>
+      <li>Nombre</li>
+      <li>Unidad de medida</li>
+    </ul>
+
+    <p>Una vez ingresados los elementos estos podrán ser seleccionados al momentos de ingresar los consumos.</p>
+
+    <h2><a name="unimeds">Unidades</a></h2>
+    <p>En este módulo se ingresan las unidades de medida que se asignarán a los diferentes elementos, ingresando la siguiente información:</p>
+
+    <ul>
+      <li>Identificador</li>
+      <li>Nombre</li>
+    </ul>
+
+    <p>Una vez ingresadas las unidades de medida estas podrán ser seleccionados al momentos de ingresar los elementos.</p>
+
+    <h2>Reportes</h2>
+    <h3><a name="report1">Boom de materia prima</a></h3>
+    <p>En este módulo se filtran los materiales explosionados de acuerdo con la combinación de los siguientes valores:</p>
+
+    <ul>
+      <li>Producto</li>
+      <li>Confirmación</li>
+      <li>Fecha inicial</li>
+      <li>Fecha final</li>
+    </ul>
+
+    <p>Cuando se elige una confirmación en específico la fecha inicial y final son ignoradas.</p>'; }
+
+  } else
+  { echo '
+    <div align="center"><h1>Módulo no encontrado o bloqueado.</h1></div>'; }
+?>
+  </body>
+</html>

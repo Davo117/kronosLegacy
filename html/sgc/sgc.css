@@ -1,0 +1,57 @@
+.Req {
+
+}
+
+.Req2 {
+
+}
+
+.Req3 {
+
+}
+
+.pci {
+  background-color: black;
+  border: 2px solid yellow; 
+  border-radius: 6px;
+  color: yellow;
+  display: inline; 
+  font-style: bold;
+  font-size: 150%; }
+
+.it {
+  background-color: #CCCCFF;
+  border: 2px solid blue; 
+  border-radius: 6px;
+  color: blue;
+  display: inline; 
+  font-style: bold;
+  font-size: 150%; 
+}
+
+.rc {
+  background-color: #FFF;
+  border: 2px solid black; 
+  border-radius: 6px;
+  color: black;
+  display: inline; 
+  font-style: bold;
+  font-size: 150%; }
+
+.anexo {
+  background-color: yellow;
+  border: 2px solid green; 
+  border-radius: 6px;
+  color: green;
+  display: inline; 
+  font-style: bold;
+  font-size: 150%; }
+
+.poli {
+  background-color: #FFC0CB;
+  border: 2px solid purple; 
+  border-radius: 6px;
+  color: purple;
+  display: inline; 
+  font-style: bold;
+  font-size: 150%; }

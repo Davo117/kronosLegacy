@@ -1,0 +1,7217 @@
+<?php
+
+  include '../../datos/mysql.php';
+  require('../../fpdf/fpdf.php');
+
+  $link = conectar();
+
+  if ($_GET['cdgoperacion'])
+  { // Buscar la operación
+    $prodProcesoSelect = $link->query("
+      SELECT * FROM prodoperacion
+       WHERE cdgoperacion = '".$_GET['cdgoperacion']."'"); 
+
+    if ($prodProcesoSelect->num_rows > 0)
+    { $regProdProceso = $prodProcesoSelect->fetch_object();
+      
+      $prodOperaciones_operacion = $regProdProceso->operacion;      
+      $prodOperaciones_cdgoperacion = $regProdProceso->cdgoperacion;
+    } else
+    { $prodOperaciones_operacion = 'Todas';
+      $prodOperaciones_cdgoperacion = ''; }
+  } else
+  { $prodOperaciones_operacion = 'Todas';
+    $prodOperaciones_cdgoperacion = ''; }
+
+  if ($_GET['cdgempleado'])
+  { // Buscar al empleado
+    $rechEmpleadoSelect = $link->query("
+      SELECT * FROM rechempleado
+       WHERE cdgempleado = '".$_GET['cdgempleado']."'"); 
+
+    if ($rechEmpleadoSelect->num_rows > 0)
+    { $regRechEmpleado = $rechEmpleadoSelect->fetch_object();
+
+      $prodOperaciones_empleado = $regRechEmpleado->empleado;
+      $prodOperaciones_cdgempleado = $regRechEmpleado->cdgempleado;
+    } else
+    { $prodOperaciones_empleado = 'Todos';
+      $prodOperaciones_cdgempleado = ''; }
+  } else
+  { $prodOperaciones_empleado = 'Todos';
+    $prodOperaciones_cdgempleado = ''; }
+
+  if ($_GET['cdgproducto'])
+  { // Buscar el producto
+    $pdtoImpresionSelect = $link->query("
+      SELECT pdtodiseno.diseno,
+             pdtoimpresion.impresion,
+             pdtoimpresion.cdgimpresion
+        FROM pdtodiseno,
+             pdtoimpresion
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = '".$_GET['cdgproducto']."'"); 
+
+    if ($pdtoImpresionSelect->num_rows > 0)
+    { $regPdtoImpresion = $pdtoImpresionSelect->fetch_object();
+
+      $prodOperaciones_producto = $regPdtoImpresion->diseno.' | '.$regPdtoImpresion->impresion;      
+      $prodOperaciones_cdgproducto = $regPdtoImpresion->cdgimpresion;
+    } else
+    { // Buscar el producto
+      $pdtoBandaPSelect = $link->query("
+        SELECT pdtobanda.banda,
+               pdtobandap.bandap,
+               pdtobandap.cdgbandap
+          FROM pdtobanda,
+               pdtobandap
+         WHERE pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+               pdtobandap.cdgbandap = '".$_GET['cdgproducto']."'"); 
+
+      if ($pdtoBandaPSelect->num_rows > 0)
+      { $regPdtoBandaP = $pdtoBandaPSelect->fetch_object();
+
+        $prodOperaciones_producto = $regPdtoBandaP->banda.' | '.$regPdtoBandaP->bandap;      
+        $prodOperaciones_cdgproducto = $regPdtoBandaP->cdgbandap;
+      } else
+      { $prodOperaciones_producto = 'Todos';
+        $prodOperaciones_cdgproducto = ''; }
+    }
+  } else
+  { $prodOperaciones_producto = 'Todos';
+    $prodOperaciones_cdgproducto = ''; }
+   
+  // Catalogo de operaciones
+  $prodOperacionSelect = $link->query("
+    SELECT * FROM prodoperacion
+  ORDER BY idoperacion");
+
+  if ($prodOperacionSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regProdOperacion = $prodOperacionSelect->fetch_object())
+    { $item++;
+
+      $prodOperacion_operacion[$item] = $regProdOperacion->operacion;
+      $prodOperacion_cdgoperacion[$item] = $regProdOperacion->cdgoperacion;
+
+      $prodOperaciones_operaciones[$regProdOperacion->cdgoperacion] = $regProdOperacion->operacion; }
+  
+    $nOperaciones = $item; }
+
+  // Catalogo de empleados
+  $rechEmpleadoSelect = $link->query("
+    SELECT * FROM rechempleado
+  ORDER BY empleado");
+
+  if ($rechEmpleadoSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regRechEmpleado = $rechEmpleadoSelect->fetch_object())
+    { $item++;
+
+      $prodOperacion_empleado[$item] = $regRechEmpleado->empleado;
+      $prodOperacion_cdgempleado[$item] = $regRechEmpleado->cdgempleado;
+
+      $prodOperacion_empleados[$regRechEmpleado->cdgempleado] = $regRechEmpleado->empleado; }
+  
+    $nEmpleados = $item; }
+
+  // Catalogo de productos
+  $pdtoImpresionSelect = $link->query("
+    SELECT pdtodiseno.diseno,
+           pdtoimpresion.impresion,
+           pdtoimpresion.cdgimpresion
+      FROM pdtodiseno,
+           pdtoimpresion
+     WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno
+  ORDER BY pdtoimpresion.impresion");
+
+  if ($pdtoImpresionSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regPdtoImpresion = $pdtoImpresionSelect->fetch_object())
+    { $item++;
+
+      $prodOperacion_producto[$item] = $regPdtoImpresion->diseno.' | '.$regPdtoImpresion->impresion;
+      $prodOperacion_cdgproducto[$item] = $regPdtoImpresion->cdgimpresion;
+
+      $prodOperacion_productos[$regPdtoImpresion->cdgimpresion] = $regPdtoImpresion->diseno.' | '.$regPdtoImpresion->impresion; }
+  
+    $nProductos = $item; }
+
+  $pdtoBandaPSelect = $link->query("
+    SELECT pdtobanda.banda,
+           pdtobandap.bandap,
+           pdtobandap.cdgbandap
+      FROM pdtobanda,
+           pdtobandap
+     WHERE pdtobanda.cdgbanda = pdtobandap.cdgbanda
+  ORDER BY pdtobandap.bandap");
+
+  if ($pdtoBandaPSelect->num_rows > 0)
+  { while ($regPdtoBandaP = $pdtoBandaPSelect->fetch_object())
+    { $item++;
+
+      $prodOperacion_producto[$item] = $regPdtoBandaP->banda.' | '.$regPdtoBandaP->bandap;
+      $prodOperacion_cdgproducto[$item] = $regPdtoBandaP->cdgbandap;
+
+      $prodOperacion_productos[$regPdtoBandaP->cdgbandap] = $regPdtoBandaP->banda.' | '.$regPdtoBandaP->bandap; }
+  
+    $nProductos += $item; }    
+
+  // Catalogo de maquinas
+  $prodMaquinaSelect = $link->query("
+    SELECT * FROM prodmaquina
+    ORDER BY idmaquina");
+
+  if ($prodMaquinaSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regProdMaquina = $prodMaquinaSelect->fetch_object())
+    { $item++;
+
+      $prodOperacion_maquina[$item] = $regProdOperacion->maquina;
+      $prodOperacion_cdgmaquina[$item] = $regProdOperacion->cdgmaquina;
+
+      $prodOperacion_maquinas[$regProdMaquina->cdgmaquina] = $regProdMaquina->maquina; }
+  
+    $nMaquinas = $item; }
+
+  class PDF extends FPDF
+  { function Header()
+    { global $prodOperaciones_operacion;
+      global $prodOperaciones_empleado;
+      global $prodOperaciones_producto;
+
+      if ($_SESSION['usuario'] == '')
+      { $_SESSION['usuario'] = 'Invitado'; }
+
+      if (file_exists('../../img_sistema/logo.jpg')==true)
+      { $this->Image('../../img_sistema/logo.jpg',10,7,0,10); }      
+
+      $this->SetFillColor(255,153,0);
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Documento'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('Histórico de Operaciones'),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Operación'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($prodOperaciones_operacion),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Empleado'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($prodOperaciones_empleado),0,1,'L');      
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Producto'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($prodOperaciones_producto),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Rango de fechas'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($_GET['dsdfecha'].' | '.$_GET['hstfecha']),0,1,'L');      
+
+      $this->Ln(4.15); }
+  }
+
+  $pdf=new PDF('P','mm','letter');
+  $pdf->AliasNbPages();
+  $pdf->SetDisplayMode(real, continuous);    
+  $pdf->AddPage();
+  $pdf->SetFillColor(180,180,180);
+  
+  // 20011 Embosado (BS)
+  // 30011 Refilado (BS)
+  // 30015 Laminado (BS)
+  // 40011 Sliteo (BS)
+
+  // 20001 Impresión (SS)
+  // 30001 Refilado (SS)
+  // 40001 Fusión (SS)
+  // 40006 Revisión (SS)
+  // 50001 Corte (SS)
+
+  if ($prodOperaciones_cdgoperacion == '')
+  { if ($prodOperaciones_cdgempleado == '')
+    { if ($prodOperaciones_cdgproducto == '')
+      { // Todas las operaciones
+        // Todos los empleados
+        // Todos los productos     
+
+        // *** Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+           WHERE prodlote.cdglote = prodloteope.cdglote AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // *** Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+           WHERE prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // *** Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+           WHERE prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+        
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          // Embosado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20011' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',5);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fín del embosado
+         
+          // Laminado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '30015' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',5);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fín del laminado
+
+          // Sliteo
+          $prodLoteSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                 ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodlote.cdglote
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodloteope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '40011') AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       proddisco
+                WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',5);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del sliteo
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30011' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',5);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del refilado
+
+          // Laminado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30015' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',5);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del laminado
+
+          // Sliteo
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                 ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodbobina.cdgbobina
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodbobina,
+                   prodbobinaope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '40011') AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       prodbobina,
+                       proddisco
+                WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',5);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del sliteo            
+
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          // Impresión
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20001' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin de la impresión
+
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30001' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del refilado
+
+          // Fusión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40001' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin de la fusión
+
+          // Revisión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40006' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }          
+          // Fin de la revisión
+
+          // Corte
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrollo.cdgrollo
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '50001' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $prodPaqueteSelect = $link->query("
+                SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                FROM pdtoimpresion,
+                     pdtojuego,
+                     prodlote,
+                     prodloteope,
+                     prodbobina,
+                     prodrollo,
+                     prodpaquete
+               WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                    (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                     pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                     pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+            GROUP BY prodpaquete.cdgrollo");
+
+              if ($prodPaqueteSelect->num_rows > 0)
+              { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,0,'L');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+              $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+            
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+            $pdf->Ln(2); }
+          // Fin del corte
+        }                
+      } else
+      { // Todas las operaciones
+        // Todos los empleados
+        // Un solo producto
+
+        // **P Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+          WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                 prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // **P Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+          WHERE (prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // **P Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+          WHERE (prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          // Embosado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodloteope.cdgoperacion = '20011' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }          
+          // Fín del embosado
+         
+          // Laminado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,                   
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."' AND                   
+                   prodloteope.cdgoperacion = '30015' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fín del laminado
+         
+          // Sliteo
+          $prodLoteSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                 ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodlote.cdglote
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodloteope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodloteope.cdglote AND
+                   prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodloteope.cdgoperacion = '40011') AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       proddisco
+                WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del sliteo
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodbobinaope.cdgoperacion = '30011' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fín del refilado
+         
+          // Laminado
+                       $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodbobinaope.cdgoperacion = '30015' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);            
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del laminado
+
+          // Sliteo
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                 ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodbobina.cdgbobina
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodbobina,
+                   prodbobinaope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodbobinaope.cdgoperacion = '40011') AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);            
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       prodbobina,
+                       proddisco
+                WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del sliteo            
+
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          // Impresión        
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+            WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20001' AND
+                   prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+
+          // Fin de la impresión
+
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodbobinaope.cdgoperacion = '30001' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del refilado
+
+          // Fusión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodrolloope.cdgoperacion = '40001' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin de la fusión
+
+          // Revisión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40006' AND
+                   prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin de la revisión
+
+          // Corte
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrollo.cdgrollo
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                   prodrolloope.cdgoperacion = '50001' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $prodPaqueteSelect = $link->query("
+                SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                FROM pdtoimpresion,
+                     pdtojuego,
+                     prodlote,
+                     prodloteope,
+                     prodbobina,
+                     prodrollo,
+                     prodpaquete
+               WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                    (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                     pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                     pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+            GROUP BY prodpaquete.cdgrollo");
+
+              if ($prodPaqueteSelect->num_rows > 0)
+              { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+              $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+            
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+            $pdf->Ln(2); }            
+          // Fin del corte          
+        }       
+      }
+    } else
+    { if ($prodOperaciones_cdgproducto == '')
+      { // Todas las operaciones
+        // Un solo empleado
+        // Todos los productos 
+
+        // *E* Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+          WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // *E* Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+          WHERE (prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // *E* Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+          WHERE (prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          // Embosado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20011' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }          
+          // Fín del embosado
+         
+          // Laminado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,                   
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND                   
+                   prodloteope.cdgoperacion = '30015' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fín del laminado
+         
+          // Sliteo
+          $prodLoteSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                 ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodlote.cdglote
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodloteope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '40011' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       proddisco
+                WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del sliteo
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30011' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fín del refilado
+         
+          // Laminado
+                          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30015' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del laminado
+
+          // Sliteo
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                 ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodbobina.cdgbobina
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodbobina,
+                   prodbobinaope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '40011' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       prodbobina,
+                       proddisco
+                WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del sliteo            
+
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          // Impresión
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20001' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin de la impresión
+
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30001' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del refilado
+
+          // Fusión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40001' AND
+                   prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin de la fusión
+
+          // Revisión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40006' AND
+                   prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');              
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin de la revisión
+
+          // Corte
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrollo.cdgrollo
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '50001' AND
+                   prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+            $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $prodPaqueteSelect = $link->query("
+                SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                FROM pdtoimpresion,
+                     pdtojuego,
+                     prodlote,
+                     prodloteope,
+                     prodbobina,
+                     prodrollo,
+                     prodpaquete
+               WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                    (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                     pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                     pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+            GROUP BY prodpaquete.cdgrollo");
+
+              if ($prodPaqueteSelect->num_rows > 0)
+              { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+              $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+              $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+            
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+            $pdf->Ln(2); }            
+          // Fin del corte
+        }         
+      } else
+      { // Todas las operaciones
+        // Un solo empleado
+        // Un solo producto
+
+        // *EP Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+          WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // *EP Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+          WHERE (prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // *EP Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+          WHERE (prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          // Embosado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20011' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }          
+          // Fín del embosado
+         
+          // Laminado
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,                   
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND                   
+                   prodloteope.cdgoperacion = '30015' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fín del laminado
+         
+          // Sliteo
+          $prodLoteSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                 ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodlote.cdglote
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodloteope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '40011' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       proddisco
+                WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del sliteo
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30011' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fín del refilado
+         
+          // Laminado
+                          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30015' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del laminado
+
+          // Sliteo
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                 ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                   prodbobina.cdgbobina
+              FROM pdtobanda,
+                   pdtobandap,
+                   prodlote,
+                   prodbobina,
+                   prodbobinaope
+            WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                   prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                  (prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '40011' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $prodDiscoSelect = $link->query("
+                SELECT SUM(proddisco.longitud) AS longout
+                  FROM prodlote,
+                       prodbobina,
+                       proddisco
+                WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = proddisco.cdgbobina AND
+                       proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                      (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+              if ($prodDiscoSelect->num_rows > 0)
+              { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+              $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin del sliteo            
+
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          // Impresión
+          $prodLoteOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodlote.cdgproducto,
+                   prodloteope.cdgempleado,
+                   prodloteope.longitud AS longin,
+                   prodloteope.longitudfin AS longout
+              FROM prodlote,
+                   prodloteope
+             WHERE prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '20001' AND
+                   prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop");
+          
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdLoteOpe->longin;
+              $prodOperacion_longout += $regProdLoteOpe->longout;
+
+              $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+              $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin de la impresión
+
+          // Refilado
+          $prodBobinaOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodbobina.cdgproducto,
+                   prodbobinaope.cdgempleado,
+                   prodbobinaope.longitud AS longin,
+                   prodbobinaope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30001' AND
+                   prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina");
+          
+          if ($prodBobinaOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdBobinaOpe->longin;
+              $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+              $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+              $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin del refilado
+
+          // Fusión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40001' AND
+                   prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+            
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }            
+          // Fin de la fusión
+
+          // Revisión
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrolloope.longitudfin AS longout
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '40006' AND
+                   prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdRolloOpe->longout;
+
+              $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+          
+            $pdf->Ln(2); }
+          // Fin de la revisión
+
+          // Corte
+          $prodRolloOpeSelect = $link->query("
+            SELECT prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo,
+                   prodrollo.cdgproducto,
+                   prodrolloope.cdgempleado,
+                   prodrolloope.longitud AS longin,
+                   prodrollo.cdgrollo
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodrolloope
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                   prodrolloope.cdgoperacion = '50001' AND
+                   prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                   prodrolloope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                  (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+          ORDER BY prodlote.serie,
+                   prodlote.noop,
+                   prodbobina.bobina,
+                   prodrollo.rollo");
+          
+          if ($prodRolloOpeSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',12);
+            $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+            $pdf->Cell(5,4,'',0,0,'R');
+            $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+            $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+            $prodOperacion_longin = 0;
+            $prodOperacion_longout = 0;
+
+            $item = 0;
+            while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+            { $prodPaqueteSelect = $link->query("
+                SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                FROM pdtoimpresion,
+                     pdtojuego,
+                     prodlote,
+                     prodloteope,
+                     prodbobina,
+                     prodrollo,
+                     prodpaquete
+               WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                    (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                     pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                     pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+            GROUP BY prodpaquete.cdgrollo");
+
+              if ($prodPaqueteSelect->num_rows > 0)
+              { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+              $item++;
+
+              $pdf->SetFont('arial','I',6);
+              $pdf->Cell(5,4,$item,0,0,'R');
+
+              $pdf->SetFont('arial','',8);
+              $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+              $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,1,'R');
+            
+              $prodOperacion_longin += $regProdRolloOpe->longin;
+              $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+              $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+              $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+            
+            $pdf->SetFont('arial','I',8);
+            $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+            $pdf->SetFont('arial','B',8);
+            $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+            $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+            $pdf->Ln(2); }            
+          // Fin del corte         
+        }       
+      }
+    }
+  } else
+  { if ($prodOperaciones_cdgempleado == '')
+    { if ($prodOperaciones_cdgproducto == '')
+      { // Todas las operaciones
+        // Todos los empleados
+        // Todos los productos     
+
+        // O** Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+           WHERE prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // O** Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+           WHERE prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobinaope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND           
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // O** Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+           WHERE prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrolloope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND           
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+        
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)          
+          if ($prodOperaciones_cdgoperacion == '20001')
+          { // Embosado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20011' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fín del embosado
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '30015' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fín del laminado
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodLoteSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                   ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodlote.cdglote
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodloteope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '40011') AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         proddisco
+                  WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del sliteo
+          }
+         
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)            
+          if ($prodOperaciones_cdgoperacion == '30011')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30011' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del refilado
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30015' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del laminado
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                   ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodbobina.cdgbobina
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodbobina,
+                     prodbobinaope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '40011') AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         prodbobina,
+                         proddisco
+                  WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                         prodbobina.cdgbobina = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del sliteo
+          }
+         
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          if ($prodOperaciones_cdgoperacion == '20001')
+          { // Impresión
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin de la impresión
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '30001')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30001' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40001')
+          { // Fusión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40001' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin de la fusión
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '40006')
+          { // Revisión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40006' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }          
+            // Fin de la revisión
+          }
+         
+          if ($prodOperaciones_cdgoperacion == '50001')
+          { // Corte
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrollo.cdgrollo
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '50001' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $prodPaqueteSelect = $link->query("
+                  SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                  FROM pdtoimpresion,
+                       pdtojuego,
+                       prodlote,
+                       prodloteope,
+                       prodbobina,
+                       prodrollo,
+                       prodpaquete
+                 WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                      (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                      (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                       prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                      (prodlote.cdglote = prodloteope.cdglote AND
+                       prodloteope.cdgoperacion = '20001' AND
+                       prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                       pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                       pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+              GROUP BY prodpaquete.cdgrollo");
+
+                if ($prodPaqueteSelect->num_rows > 0)
+                { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,0,'L');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+                $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+              
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+              $pdf->Ln(2); }
+            // Fin del corte
+          } 
+        }            
+      } else
+      { // Todas las operaciones
+        // Todos los empleados
+        // Un solo producto
+
+        // O*P Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+          WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                 prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                 prodloteope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND        
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // O*P Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+          WHERE (prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                 prodbobinaope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // O*P Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+          WHERE (prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                 prodrolloope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND        
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          if ($prodOperaciones_cdgoperacion == '20011')
+          { // Embosado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodloteope.cdgoperacion = '20011' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fín del embosado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,                   
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."' AND                   
+                     prodloteope.cdgoperacion = '30015' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fín del laminado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodLoteSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                   ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodlote.cdglote
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodloteope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodloteope.cdgoperacion = '40011') AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         proddisco
+                  WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del sliteo
+          }
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          if ($prodOperaciones_cdgoperacion == '30011')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodbobinaope.cdgoperacion = '30011' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fín del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodbobinaope.cdgoperacion = '30015' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);            
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del laminado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                   ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodbobina.cdgbobina
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodbobina,
+                     prodbobinaope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodbobinaope.cdgoperacion = '40011') AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);            
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         prodbobina,
+                         proddisco
+                  WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                         prodbobina.cdgbobina = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del sliteo
+          }
+
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          if ($prodOperaciones_cdgoperacion == '20001')
+          { // Impresión        
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+              WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');      
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdLoteOpe->cdgempleado]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+
+            // Fin de la impresión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30001')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodbobinaope.cdgoperacion = '30001' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdBobinaOpe->cdgempleado]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40001')
+          { // Fusión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodrolloope.cdgoperacion = '40001' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin de la fusión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40006')
+          { // Revisión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40006' AND
+                     prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin de la revisión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '50001')
+          { // Corte
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrollo.cdgrollo
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."' AND
+                     prodrolloope.cdgoperacion = '50001' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Empleado'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $prodPaqueteSelect = $link->query("
+                  SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                  FROM pdtoimpresion,
+                       pdtojuego,
+                       prodlote,
+                       prodloteope,
+                       prodbobina,
+                       prodrollo,
+                       prodpaquete
+                 WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                      (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                      (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                       prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                      (prodlote.cdglote = prodloteope.cdglote AND
+                       prodloteope.cdgoperacion = '20001' AND
+                       prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                       pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                       pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+              GROUP BY prodpaquete.cdgrollo");
+
+                if ($prodPaqueteSelect->num_rows > 0)
+                { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_empleados[$regProdRolloOpe->cdgempleado]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+                $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+              
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+              $pdf->Ln(2); }            
+            // Fin del corte
+          }        
+        }       
+      }
+    } else
+    { if ($prodOperaciones_cdgproducto == '')
+      { // Todas las operaciones
+        // Un solo empleado
+        // Todos los productos 
+
+        // OE* Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+          WHERE (prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND
+                 prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // OE* Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+          WHERE (prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobinaope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND
+                 prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // OE* Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+          WHERE (prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrolloope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND            
+                 prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          if ($prodOperaciones_cdgoperacion == '20011')
+          { // Embosado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20011' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }          
+            // Fín del embosado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,                   
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND                   
+                     prodloteope.cdgoperacion = '30015' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fín del laminado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodLoteSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                   ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodlote.cdglote
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodloteope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '40011' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         proddisco
+                  WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del sliteo
+          }
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          if ($prodOperaciones_cdgoperacion == '30011')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30011' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fín del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30015' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del laminado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                   ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodbobina.cdgbobina
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodbobina,
+                     prodbobinaope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '40011' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         prodbobina,
+                         proddisco
+                  WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                         prodbobina.cdgbobina = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del sliteo
+          }
+
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          if ($prodOperaciones_cdgoperacion == '20001')
+          { // Impresión
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdLoteOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin de la impresión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30001')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30001' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdBobinaOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40001')
+          { // Fusión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40001' AND
+                     prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin de la fusión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40006')
+          { // Revisión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40006' AND
+                     prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');              
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin de la revisión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '50001')
+          { // Corte
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrollo.cdgrollo
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '50001' AND
+                     prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."'
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,0,'C',true);
+              $pdf->Cell(60,4,utf8_decode('Producto'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $prodPaqueteSelect = $link->query("
+                  SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                  FROM pdtoimpresion,
+                       pdtojuego,
+                       prodlote,
+                       prodloteope,
+                       prodbobina,
+                       prodrollo,
+                       prodpaquete
+                 WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                      (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                      (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                       prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                      (prodlote.cdglote = prodloteope.cdglote AND
+                       prodloteope.cdgoperacion = '20001' AND
+                       prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                       pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                       pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+              GROUP BY prodpaquete.cdgrollo");
+
+                if ($prodPaqueteSelect->num_rows > 0)
+                { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,0,'R');
+                $pdf->Cell(60,4,utf8_decode($prodOperacion_productos[$regProdRolloOpe->cdgproducto]),1,1,'L');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+                $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+              
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+              $pdf->Ln(2); }            
+            // Fin del corte
+          }
+        }         
+      } else
+      { // Todas las operaciones
+        // Un solo empleado
+        // Un solo producto
+
+        // OEP Lotes
+        $prodLoteOpeSelect = $link->query("
+          SELECT prodloteope.fchoperacion
+            FROM prodlote,
+                 prodloteope
+          WHERE (prodlote.cdglote = prodloteope.cdglote AND 
+                 prodloteope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND
+                 prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodloteope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodloteope.fchoperacion");
+
+        if ($prodLoteOpeSelect->num_rows > 0)
+        { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdLoteOpe->fchoperacion] = $regProdLoteOpe->fchoperacion; }
+        }
+
+        // OEP Bobinas
+        $prodBobinaOpeSelect = $link->query("
+          SELECT prodbobinaope.fchoperacion
+            FROM prodbobina,
+                 prodbobinaope
+          WHERE (prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobinaope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND
+                 prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodbobina.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodbobinaope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodbobinaope.fchoperacion");
+
+        if ($prodBobinaOpeSelect->num_rows > 0)
+        { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdBobinaOpe->fchoperacion] = $regProdBobinaOpe->fchoperacion; }
+        }
+
+        // OEP Rollos
+        $prodRolloOpeSelect = $link->query("
+          SELECT prodrolloope.fchoperacion
+            FROM prodrollo,
+                 prodrolloope
+          WHERE (prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrolloope.cdgoperacion = '".$prodOperaciones_cdgoperacion."' AND            
+                 prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                (prodrollo.cdgproducto = '".$prodOperaciones_cdgproducto."') AND
+                (prodrolloope.fchoperacion BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."')
+        GROUP BY prodrolloope.fchoperacion");
+
+        if ($prodRolloOpeSelect->num_rows > 0)
+        { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+          { $prodOperaciones_fchoperacion[$regProdRolloOpe->fchoperacion] = $regProdRolloOpe->fchoperacion; }
+        }
+
+        // Información
+        sort($prodOperaciones_fchoperacion);
+
+        while (list(, $prodOperaciones_fecha) = each($prodOperaciones_fchoperacion))
+        { // BANDA DE SEGURIDAD (Embosado-Laminado-Sliteado)
+          if ($prodOperaciones_cdgoperacion == '20011')
+          { // Embosado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20011' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20011'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }          
+            // Fín del embosado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,                   
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND                   
+                     prodloteope.cdgoperacion = '30015' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fín del laminado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodLoteSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                   ((prodloteope.longitud*prodloteope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodlote.cdglote
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodloteope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodlote.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '40011' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         proddisco
+                  WHERE (prodlote.cdglote = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdLoteOpe->cdglote."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del sliteo
+          }
+
+          // BANDA DE SEGURIDAD (Refilado-Laminado-Sliteado)
+          if ($prodOperaciones_cdgoperacion == '30011')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30011' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30011'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fín del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30015')
+          { // Laminado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30015' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30015']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30015'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30015'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del laminado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40011')
+          { // Sliteo
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                   ((prodbobinaope.longitud*prodbobinaope.amplitud)/pdtobanda.anchura) AS longin,
+                     prodbobina.cdgbobina
+                FROM pdtobanda,
+                     pdtobandap,
+                     prodlote,
+                     prodbobina,
+                     prodbobinaope
+              WHERE (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+                     prodbobina.cdgproducto = pdtobandap.cdgbandap) AND
+                    (prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '40011' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."') AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40011']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $prodDiscoSelect = $link->query("
+                  SELECT SUM(proddisco.longitud) AS longout
+                    FROM prodlote,
+                         prodbobina,
+                         proddisco
+                  WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                         prodbobina.cdgbobina = proddisco.cdgbobina AND
+                         proddisco.cdgbobina = '".$regProdBobinaOpe->cdgbobina."') AND
+                        (proddisco.sttdisco = '1' OR proddisco.sttdisco = '9')");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $regProdDiscoOpe = $prodDiscoSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdDiscoOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdDiscoOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdDiscoOpe->longout;
+
+                $prodOperaciones_longin['40011'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['40011'] += $regProdDiscoOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin del sliteo            
+          }
+          
+          // SELLO DE SEGURIDAD (Impreso-Refilado-Fusionado-Rivisado/Cortado)
+          if ($prodOperaciones_cdgoperacion == '20001')
+          { // Impresión
+            $prodLoteOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodlote.cdgproducto,
+                     prodloteope.cdgempleado,
+                     prodloteope.longitud AS longin,
+                     prodloteope.longitudfin AS longout
+                FROM prodlote,
+                     prodloteope
+               WHERE prodlote.cdglote = prodloteope.cdglote AND
+                     prodloteope.cdgoperacion = '20001' AND
+                     prodloteope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodloteope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop");
+            
+            if ($prodLoteOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['20001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdLoteOpe->serie.'.'.$regProdLoteOpe->noop),1,0,'C');            
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdLoteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdLoteOpe->longout*100)/$regProdLoteOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdLoteOpe->longin;
+                $prodOperacion_longout += $regProdLoteOpe->longout;
+
+                $prodOperaciones_longin['20001'] += $regProdLoteOpe->longin;
+                $prodOperaciones_longout['20001'] += $regProdLoteOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin de la impresión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '30001')
+          { // Refilado
+            $prodBobinaOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodbobina.cdgproducto,
+                     prodbobinaope.cdgempleado,
+                     prodbobinaope.longitud AS longin,
+                     prodbobinaope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodbobinaope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                     prodbobinaope.cdgoperacion = '30001' AND
+                     prodbobinaope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodbobinaope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina");
+            
+            if ($prodBobinaOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['30001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdBobinaOpe->serie.'.'.$regProdBobinaOpe->noop.'-'.$regProdBobinaOpe->bobina),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdBobinaOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdBobinaOpe->longout*100)/$regProdBobinaOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdBobinaOpe->longin;
+                $prodOperacion_longout += $regProdBobinaOpe->longout;
+
+                $prodOperaciones_longin['30001'] += $regProdBobinaOpe->longin;
+                $prodOperaciones_longout['30001'] += $regProdBobinaOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin del refilado
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40001')
+          { // Fusión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40001' AND
+                     prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+              
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40001'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }            
+            // Fin de la fusión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '40006')
+          { // Revisión
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrolloope.longitudfin AS longout
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '40006' AND
+                     prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['40006']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdRolloOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdRolloOpe->longout;
+
+                $prodOperaciones_longin['40006'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['40006'] += $regProdRolloOpe->longout; }
+
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+            
+              $pdf->Ln(2); }
+            // Fin de la revisión
+          }
+
+          if ($prodOperaciones_cdgoperacion == '50001')
+          { // Corte
+            $prodRolloOpeSelect = $link->query("
+              SELECT prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo,
+                     prodrollo.cdgproducto,
+                     prodrolloope.cdgempleado,
+                     prodrolloope.longitud AS longin,
+                     prodrollo.cdgrollo
+                FROM prodlote,
+                     prodbobina,
+                     prodrollo,
+                     prodrolloope
+               WHERE prodlote.cdglote = prodbobina.cdglote AND
+                     prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                     prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                     prodrolloope.cdgoperacion = '50001' AND
+                     prodrolloope.cdgempleado = '".$prodOperaciones_cdgempleado."' AND
+                     prodrolloope.fchoperacion = '".$prodOperaciones_fecha."' AND
+                    (prodlote.cdgproducto = '".$prodOperaciones_cdgproducto."') 
+            ORDER BY prodlote.serie,
+                     prodlote.noop,
+                     prodbobina.bobina,
+                     prodrollo.rollo");
+            
+            if ($prodRolloOpeSelect->num_rows > 0)
+            { $pdf->SetFont('arial','',12);
+              $pdf->Cell(23,4,$prodOperaciones_fecha,0,1,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(23,5,utf8_decode('Operación | '.$prodOperaciones_operaciones['50001']),0,1,'L');
+
+              $pdf->Cell(5,4,'',0,0,'R');
+              $pdf->Cell(23,4,utf8_decode('NoOP'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('In'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Out'),1,0,'C',true);
+              $pdf->Cell(16,4,utf8_decode('Scrap'),1,1,'C',true);
+
+              $prodOperacion_longin = 0;
+              $prodOperacion_longout = 0;
+
+              $item = 0;
+              while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+              { $prodPaqueteSelect = $link->query("
+                  SELECT SUM(prodpaquete.cantidad*pdtojuego.altura) AS longout
+                  FROM pdtoimpresion,
+                       pdtojuego,
+                       prodlote,
+                       prodloteope,
+                       prodbobina,
+                       prodrollo,
+                       prodpaquete
+                 WHERE prodpaquete.cdgrollo = '".$regProdRolloOpe->cdgrollo."' AND
+                      (prodpaquete.sttpaquete = '1' OR prodpaquete.sttpaquete = '9') AND
+                      (prodlote.cdglote = prodbobina.cdglote AND
+                       prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                       prodrollo.cdgrollo = prodpaquete.cdgrollo) AND
+                      (prodlote.cdglote = prodloteope.cdglote AND
+                       prodloteope.cdgoperacion = '20001' AND
+                       prodloteope.cdgjuego = pdtojuego.cdgjuego AND
+                       pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                       pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto)
+              GROUP BY prodpaquete.cdgrollo");
+
+                if ($prodPaqueteSelect->num_rows > 0)
+                { $regProdPaqueteOpe = $prodPaqueteSelect->fetch_object(); }
+
+                $item++;
+
+                $pdf->SetFont('arial','I',6);
+                $pdf->Cell(5,4,$item,0,0,'R');
+
+                $pdf->SetFont('arial','',8);
+                $pdf->Cell(23,4,utf8_decode($regProdRolloOpe->serie.'.'.$regProdRolloOpe->noop.'-'.$regProdRolloOpe->bobina.'-'.$regProdRolloOpe->rollo),1,0,'C');
+                $pdf->Cell(16,4,number_format($regProdRolloOpe->longin,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format($regProdPaqueteOpe->longout,2,'.',','),1,0,'R');
+                $pdf->Cell(16,4,number_format((100-((($regProdPaqueteOpe->longout*100)/$regProdRolloOpe->longin))),2,'.',',').'%',1,1,'R');
+              
+                $prodOperacion_longin += $regProdRolloOpe->longin;
+                $prodOperacion_longout += $regProdPaqueteOpe->longout;
+
+                $prodOperaciones_longin['50001'] += $regProdRolloOpe->longin;
+                $prodOperaciones_longout['50001'] += $regProdPaqueteOpe->longout; }
+              
+              $pdf->SetFont('arial','I',8);
+              $pdf->Cell(28,4,utf8_decode('Metros'),0,0,'R');
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(16,4,number_format($prodOperacion_longin,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format($prodOperacion_longout,2,'.',','),1,0,'R');
+              $pdf->Cell(16,4,number_format((100-((($prodOperacion_longout*100)/$prodOperacion_longin))),2,'.',',').'%',1,1,'R');
+
+              $pdf->Ln(2); }
+            // Fin del corte
+          }
+        }       
+      }
+    }
+  }
+
+  $pdf->Output('Histórico de Operaciones del '.$_GET['dsdfecha'].' al '.$_GET['hstfecha'].' '.$_SESSION['prodcalendario_subtitulo'].'.pdf', 'D');  
+?>

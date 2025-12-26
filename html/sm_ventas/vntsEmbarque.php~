@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Embarques</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_ventas();
+
+  $sistModulo_cdgmodulo = '40210';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_POST['textusername'] AND $_POST['textpassword']) 
+    { val1dat3($_POST['textusername'], $_POST['textpassword']); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); 
+    } else
+    { echo '
+      <div id="loginform">
+        <form id="login" action="vntsEmbarque.php" method="POST">';
+
+      log1n();
+
+      echo '
+        </form>
+      </div>
+    </div>
+  </body>
+</html>'; 
+     
+      exit; }
+
+    if ($_POST['textCdgEmbarque'])
+    { $vntsEmbarque_cdgembarque = $_POST['textCdgEmbarque']; } 
+    
+    if ($_GET['cdgsucursal'])
+    { $vntsEmbarque_cdgsucursal = $_GET['cdgsucursal']; }
+    else
+    { $vntsEmbarque_cdgsucursal = $_POST['slctCdgSucursal']; }
+
+    if ($_POST['textTransporte'])
+    { $vntsEmbarque_transporte = trim($_POST['textTransporte']); }
+
+    if ($_POST['textReferencia'])
+    { $vntsEmbarque_referencia = trim($_POST['textReferencia']); }
+
+    if ($_POST['dateFchEmbarque'])
+    { $vntsEmbarque_fchembarque = $_POST['dateFchEmbarque']; }
+    else
+    { $vntsEmbarque_fchembarque = date('Y-m-d'); }
+
+    if ($_POST['textObservacion'])
+    { $vntsEmbarque_observacion = $_POST['textObservacion']; }
+    else
+    { $vntsEmbarque_observacion = 'Sin observaciones'; }  
+
+    if ($_GET['cdgembarque'])
+    { // Búsqueda de embarques
+      $vntsEmbarqueSelect = $link->query("
+        SELECT * FROM vntsembarque
+        WHERE cdgembarque = '".$_GET['cdgembarque']."'");
+
+      if ($vntsEmbarqueSelect->num_rows > 0)
+      { // Embarque encontrado, filtrado de la información
+        $regVntsEmbarque = $vntsEmbarqueSelect->fetch_object();
+
+        $vntsEmbarque_cdgembarque = $regVntsEmbarque->cdgembarque;
+        $vntsEmbarque_cdgsucursal = $regVntsEmbarque->cdgsucursal;
+        $vntsEmbarque_cdgproducto = $regVntsEmbarque->cdgproducto;
+        $vntsEmbarque_referencia = $regVntsEmbarque->referencia;
+        $vntsEmbarque_fchembarque = $regVntsEmbarque->fchembarque;
+        $vntsEmbarque_observacion = $regVntsEmbarque->observacion; }
+    } // Fin de la búsqueda de embarques
+
+    // Productos
+    if ($_POST['slctCdgProducto'])
+    { $vntsEmbarque_cdgproducto = $_POST['slctCdgProducto']; }
+
+    // Empaques
+    if ($_POST['slctCdgTipoEmpaque'])
+    { $vntsEmbarque_cdgempaque = $_POST['slctCdgTipoEmpaque']; }
+
+    // Filtro de diseños 
+    $pdtoDisenoSelect = $link->query("
+      SELECT * FROM pdtodiseno
+    ORDER BY diseno,
+             iddiseno");
+    
+    $item = 0;
+    while ($regPdtoDiseno = $pdtoDisenoSelect->fetch_object()) 
+    { $item++;
+      // Si el diseño esta activo, agregalo al filtro de productos
+      $pdtoDisenos_iddiseno[$item] = $regPdtoDiseno->iddiseno;
+      $pdtoDisenos_diseno[$item] = $regPdtoDiseno->diseno;
+      $pdtoDisenos_cdgdiseno[$item] = $regPdtoDiseno->cdgdiseno;
+      $pdtoDisenos_sttdiseno[$item] = $regPdtoDiseno->sttdiseno;
+      
+      // Filtro de impresiones por diseño
+      $pdtoImpresionSelect = $link->query("
+        SELECT * FROM pdtoimpresion
+         WHERE cdgdiseno = '".$regPdtoDiseno->cdgdiseno."'
+      ORDER BY impresion,
+               idimpresion");
+      
+      $subItem = 0;
+      while ($regPdtoImpresion = $pdtoImpresionSelect->fetch_object()) 
+      { $subItem++;
+        // Si la impresión esta activa, agregalo al filtro de productos
+        $pdtoImpresiones_idimpresion[$item][$subItem] = $regPdtoImpresion->idimpresion;
+        $pdtoImpresiones_impresion[$item][$subItem] = $regPdtoImpresion->impresion;
+        $pdtoImpresiones_ancho[$item][$subItem] = $regPdtoImpresion->ancho;
+        $pdtoImpresiones_alpaso[$item][$subItem] = $regPdtoImpresion->alpaso;
+        $pdtoImpresiones_ceja[$item][$subItem] = $regPdtoImpresion->ceja;
+        $pdtoImpresiones_tolerancia[$item][$subItem] = $regPdtoImpresion->tolerancia;
+        $pdtoImpresiones_corte[$item][$subItem] = $regPdtoImpresion->corte;
+        $pdtoImpresiones_cdgimpresion[$item][$subItem] = $regPdtoImpresion->cdgimpresion;
+        $pdtoImpresiones_sttimpresion[$item][$subItem] = $regPdtoImpresion->sttimpresion;
+
+        // Agrega todos los productos a un arreglo para mostrarlos en el filtro de embarques
+        $vntsEmbarque_productos[$regPdtoImpresion->cdgimpresion] = $regPdtoImpresion->impresion; }
+      
+      $numImpresiones[$item] = $subItem;
+      // Fin del filtro de impresiones por diseño
+    }
+
+    $numDisenos = $item;
+    // Fin del filtro de diseños
+    
+    // Filtro de tipos de empaque
+    $pdtoEmpaqueSelect = $link->query("
+      SELECT * FROM pdtoempaque 
+       WHERE sttempaque = '1'
+    ORDER BY idempaque");
+
+    $item = 0;
+    while ($regPdtoEmpaque = $pdtoEmpaqueSelect->fetch_object())
+    { $item++;
+
+      $pdtoEmpaque_idempaque[$item] = $regPdtoEmpaque->idempaque;
+      $pdtoEmpaque_empaque[$item] = $regPdtoEmpaque->empaque;
+      $pdtoEmpaque_cdgempaque[$item] = $regPdtoEmpaque->cdgempaque; }
+
+    $nTEmpaque = $item;
+    // Fin del filtro de tipos de empaque
+
+    // Embarques    
+    $vntsEmbarqueSelect = $link->query("
+      SELECT vntsoc.oc, vntsembarque.cdgembarque
+      FROM vntsoc, vntsoclote, vntsembarque
+      WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND vntsoclote.cdglote = vntsembarque.cdglote");
+
+    while ($regVntsEmbarque = $vntsEmbarqueSelect->fetch_object())
+    { $vntsEmbarque_oc[$regVntsEmbarque->cdgembarque] = $regVntsEmbarque->oc; }
+    // -----------------------------------------
+
+    if ($_POST['bttnSalvar'])
+    { if (substr($sistModulo_permiso,0,2) == 'rw')
+      { if($vntsEmbarque_cdgsucursal != '')
+        { if($vntsEmbarque_cdgproducto != '')
+          { if($vntsEmbarque_cdgempaque != '')
+            { if($vntsEmbarque_fchembarque != '')
+              { if($vntsEmbarque_referencia != '')
+                { $vntsEmbarque_fchembarque = valorFecha($vntsEmbarque_fchembarque);
+
+                  $vntsEmbarqueSelect = $link->query("
+                    SELECT * FROM vntsembarque
+                     WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."'");
+
+                  if ($vntsEmbarqueSelect->num_rows > 0)
+                  { $link->query("
+                      UPDATE vntsembarque 
+                         SET fchembarque = '".$vntsEmbarque_fchembarque."',
+                             observacion = '".$vntsEmbarque_observacion."',                             
+                             transporte = '".$vntsEmbarque_transporte."',
+                             referencia = '".$vntsEmbarque_referencia."'
+                       WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."'");
+
+                    if ($link->affected_rows > 0)
+                    { $msg_alert .= 'El embarque fue actualizado. \n';
+                    } else
+                    { $msg_alert .= 'El embarque NO reporto cambios. \n'; }
+                  } else
+                  { for ($id = 1; $id <= 10000; $id++)
+                    { $vntsEmbarque_newcdgembarque = date('ymd').str_pad($id,4,'0',STR_PAD_LEFT);
+
+                      if ($id >= 10000)
+                      { $msg_alert .= 'Los codigos disponibles para embarques se han agotado. \n'; }
+                      else
+                      { $vntsEmbarqueSelect = $link->query("
+                          SELECT * FROM vntsembarque
+                           WHERE cdgembarque = '".$vntsEmbarque_newcdgembarque."'");
+
+                        if ($vntsEmbarqueSelect->num_rows > 0)
+                        { // Codigo utilizado 
+                        } else
+                        { $link->query("
+                            INSERT vntsembarque 
+                              (cdgembarque, cdgsucursal, cdgproducto, cdgempaque, transporte, referencia, fchembarque, observacion)
+                            VALUES
+                              ('".$vntsEmbarque_newcdgembarque."', '".$vntsEmbarque_cdgsucursal."', '".$vntsEmbarque_cdgproducto."', '".$vntsEmbarque_cdgempaque."', '".$vntsEmbarque_transporte."', '".$vntsEmbarque_referencia."', '".$vntsEmbarque_fchembarque."', '".$vntsEmbarque_observacion."')");
+
+                          if ($link->affected_rows > 0)
+                          { $msg_alert .= 'El embarque fue insertado. \n'; 
+                          } else
+                          { $msg_alert .= 'El embarque NO fue insertado. \n'; }
+
+                          $id = 10000;
+                        }
+                      }
+                    }
+                  }
+
+                  
+                } else
+                { $msg_alert .= 'Es necesario indicar la referencia. \n'; }
+              } else
+              { $msg_alert .= 'Es necesario indicar la fecha del embarque. \n'; }
+            } else
+            { $msg_alert .= 'Es necesario seleccionar un tipo de empaque. \n'; }
+          } else
+          { $msg_alert .= 'Es necesario seleccionar un producto. \n'; }
+        } else
+        { $msg_alert .= 'Es necesario seleccionar una sucursal. \n'; }
+      } else
+      { $msg_alert .= 'No cuentas con permisos de escritura en este modulo. \n'; }
+
+      $vntsEmbarque_cdgembarque = '';
+    }
+
+    if ($_GET['cdgembarque'])
+    { if (substr($sistModulo_permiso,0,1) == 'r')
+      { $vntsEmbarqueSelect = $link->query("
+          SELECT * FROM vntsembarque
+           WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."'");
+
+        if ($vntsEmbarqueSelect->num_rows > 0)
+        { $regVntsEmbarque = $vntsEmbarqueSelect->fetch_object();
+
+          $vntsEmbarque_cdgembarque = $regVntsEmbarque->cdgembarque;
+          $vntsEmbarque_cdgsucursal = $regVntsEmbarque->cdgsucursal;
+          $vntsEmbarque_cdglote = $regVntsEmbarque->cdglote;
+          $vntsEmbarque_cdgproducto = $regVntsEmbarque->cdgproducto;
+          $vntsEmbarque_cdgtpoempaque = $regVntsEmbarque->cdgempaque;
+          $vntsEmbarque_transporte = $regVntsEmbarque->transporte;
+          $vntsEmbarque_referencia = $regVntsEmbarque->referencia;
+          $vntsEmbarque_fchembarque = $regVntsEmbarque->fchembarque;
+          $vntsEmbarque_observacion = $regVntsEmbarque->observacion;
+          $vntsEmbarque_sttembarque = $regVntsEmbarque->sttembarque;
+
+          if ($_GET['proceso'] == 'update')
+          { if (substr($sistModulo_permiso,0,2) == 'rw')
+            { if ($vntsEmbarque_sttembarque == '1')
+              { $vntsEmbarque_newsttembarque = '0'; }
+            
+              if ($vntsEmbarque_sttembarque == '0')
+              { $vntsEmbarque_newsttembarque = '1'; }
+              
+              if ($vntsEmbarque_newsttembarque != '')
+              { $link = conectar();
+                $link->query("
+                  UPDATE vntsembarque
+                     SET sttembarque = '".$vntsEmbarque_newsttembarque."' 
+                   WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."'"); 
+              } else
+              { $msg_alert .= 'El embarque no puede ser modificado en su status. \n'; }
+                
+              if ($link->affected_rows > 0)
+              { $msg_alert .= 'El embarque fue actualizado en su status. \n'; }
+              else
+              { $msg_alert .= 'El embarque NO fue actualizado (status). \n'; }
+            } else
+            { $msg_alert = $msg_norewrite; }            
+          }
+
+          if ($_GET['proceso'] == 'open')
+          { if (substr($sistModulo_permiso,0,3) == 'rwx')
+            { $link->query("
+                UPDATE vntsembarque
+                   SET cdglote = '',
+                       cantidad = 0,
+                       fchmovimiento = NOW()
+                 WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."'");
+
+              if ($link->affected_rows > 0)
+              { $vntsSurtidoSelect = $link->query("
+                  SELECT SUM(cantidad) AS surtido
+                    FROM vntsembarque
+                    WHERE cdglote = '".$vntsEmbarque_cdglote."'");
+
+                if ($vntsSurtidoSelect->num_rows > 0)
+                { $regVntsSurtido = $vntsSurtidoSelect->fetch_object();
+
+                  $updateSurtido = number_format($regVntsSurtido->surtido,2,'.','');
+                } else
+                { $updateSurtido = 0; }
+
+                $link->query("
+                  UPDATE vntsoclote
+                     SET surtido = ".$updateSurtido."
+                   WHERE cdglote = '".$vntsEmbarque_cdglote."'");
+
+                if ($link->affected_rows > 0)
+                { $msg_alert = 'El lote fue actualizado.';
+                } else
+                { $msg_alert = 'El lote NO reporto cambios. '.$vntsEmbarque_cdglote; }
+
+              } else
+              { $msg_alert = 'El embarque NO reporto cambios.'; }
+            }
+          }
+
+          if ($_GET['proceso'] == 'delete')
+          { if (substr($sistModulo_permiso,0,3) == 'rwx')
+            { $pdtoMezclaSelect = $link->query("
+                SELECT * FROM alptempaque
+                 WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."'");
+                
+              if ($pdtoMezclaSelect->num_rows > 0)
+              { $msg_alert .= 'El embarque cuenta con empaques ligados, no pudo ser eliminada. \n'; }
+              else
+              { $link->query("
+                  DELETE FROM vntsembarque
+                   WHERE cdgembarque = '".$vntsEmbarque_cdgembarque."' AND 
+                         sttembarque = '0'");
+                  
+                if ($link->affected_rows > 0)
+                { $msg_alert .= 'El embarque fue eliminado con exito. \n'; }
+                else
+                { $msg_alert .= 'El embarque NO fue eliminado. \n'; }
+              }
+            }
+          }
+        } else
+        { $msg_alert .= 'El embarque seleccionado no pudo ser encontrado. \n'; }
+      } else
+      { $msg_alert .= 'No cuentas con permisos de lectura en este modulo. \n'; }
+    }
+
+    if (substr($sistModulo_permiso,0,1) == 'r')
+    { $vntsClienteSelect = $link->query("
+        SELECT * FROM vntscliente
+         WHERE sttcliente = '1'
+      ORDER BY cliente");
+
+      if ($vntsClienteSelect->num_rows > 0)
+      { $item = 0;
+
+        while ($regVntsCliente = $vntsClienteSelect->fetch_object())
+        { $item++;
+
+          $vntsCliente_idcliente[$item] = $regVntsCliente->idcliente;
+          $vntsCliente_cliente[$item] = $regVntsCliente->cliente;
+          $vntsCliente_cdgcliente[$item] = $regVntsCliente->cdgcliente;
+
+          $vntsSucursalSelect = $link->query("
+            SELECT * FROM vntssucursal
+             WHERE cdgcliente = '".$vntsCliente_cdgcliente[$item]."' AND
+                   sttsucursal = '1'
+          ORDER BY sucursal");
+
+          if ($vntsSucursalSelect->num_rows > 0)
+          { $subItem = 0;
+
+            while ($regVntsSucursal = $vntsSucursalSelect->fetch_object())
+            { $subItem++;
+
+              $vntsSucursal_idsucursal[$item][$subItem] = $regVntsSucursal->idsucursal;
+              $vntsSucursal_sucursal[$item][$subItem] = $regVntsSucursal->sucursal;
+              $vntsSucursal_transporte[$item][$subItem] = $regVntsSucursal->transporte;
+              $vntsSucursal_cdgsucursal[$item][$subItem] = $regVntsSucursal->cdgsucursal;
+
+              $vntsSucursales_sucursal[$regVntsSucursal->cdgsucursal] = $regVntsSucursal->sucursal; }
+
+            $num_sucursales[$item] = $vntsSucursalSelect->num_rows; }
+           }
+
+        $nClientes = $vntsClienteSelect->num_rows; } 
+
+      if ($_POST['chckVerTodo'])
+      { $vertodo = 'checked'; 
+        // Filtrado completo
+        $vntsEmbarqueSelect = $link->query("
+          SELECT * FROM vntsembarque
+        ORDER BY cdgembarque DESC"); }
+      else
+      { // Buscar coincidencias        
+        $vntsEmbarqueSelect = $link->query("
+          SELECT * FROM vntsembarque
+           WHERE vntsembarque.sttembarque = '1'
+        ORDER BY cdgembarque DESC"); }
+    
+      if ($vntsEmbarqueSelect->num_rows > 0)
+      { $item = 0;
+
+        while ($regVntsEmbarque = $vntsEmbarqueSelect->fetch_object())
+        { $item++;
+
+          $vntsEmbarques_cdgembarque[$item] = $regVntsEmbarque->cdgembarque; 
+          $vntsEmbarques_cdgsucursal[$item] = $regVntsEmbarque->cdgsucursal;
+          $vntsEmbarques_cdgproducto[$item] = $regVntsEmbarque->cdgproducto;
+          $vntsEmbarques_cdgtpoempaque[$item] = $regVntsEmbarque->cdgempaque;
+          $vntsEmbarques_referencia[$item] = $regVntsEmbarque->referencia;          
+          $vntsEmbarques_fchembarque[$item] = $regVntsEmbarque->fchembarque;
+          $vntsEmbarques_sttembarque[$item] = $regVntsEmbarque->sttembarque; }
+
+        $nEmbarques = $item; }
+    } else
+    { $msg_alert .= 'No cuentas con permisos de lectura en este modulo. \n'; }
+
+    echo '
+      <div class="bloque">      
+        <form id="formVntsEmbarque" name="formVntsEmbarque" method="POST" action="vntsEmbarque.php" />
+          <input type="hidden" id="textCdgEmbarque" name="textCdgEmbarque" value="'.$vntsEmbarque_cdgembarque.'" />
+
+          <article class="subbloque">
+            <label class="modulo_nombre">Embarques</label>
+          </article>
+          <input type="checkbox" id="chckVerTodo" name="chckVerTodo" onclick="document.formVntsEmbarque.submit()" '.$vertodo.'><label>ver todo</label>
+          <a href="ayuda.php#Embarques">'.$_help_blue.'</a>
+
+          <section class="subbloque">
+            <article>
+              <label><a href="vntsSucursal.php?cdgsucursal='.$vntsEmbarque_cdgsucursal.'"><strong>Sucursal</strong></a></label><br/>
+              <select id="slctCdgSucursal" name="slctCdgSucursal" onchange="document.formVntsEmbarque.submit()" required >
+                <option value="">Elige una sucursal</option>';
+
+    for ($item = 1; $item <= $nClientes; $item++)
+    { echo '
+                <optgroup label="'.$vntsCliente_cliente[$item].'">';
+      
+      for ($subItem = 1; $subItem <= $num_sucursales[$item]; $subItem++)
+      { echo '
+                <option value="'.$vntsSucursal_cdgsucursal[$item][$subItem].'"';
+
+        if ($vntsEmbarque_cdgsucursal == $vntsSucursal_cdgsucursal[$item][$subItem])
+        { if ($vntsEmbarque_transporte == '') 
+          { $vntsEmbarque_transporte = $vntsSucursal_transporte[$item][$subItem]; }
+
+          echo ' selected="selected"'; }
+
+          echo '>'.$vntsSucursal_sucursal[$item][$subItem].'</option>'; } 
+      
+      echo '
+                </optgroup>'; }
+
+    echo '
+              </select>
+            </article>
+
+            <article>
+              <label><a href="../sm_producto/pdtoImpresion.php?cdgimpresion='.$vntsEmbarque_cdgproducto.'"><strong>Producto</strong></a></label><br/>
+              <select id="slctCdgProducto" name="slctCdgProducto" onchange="document.formVntsEmbarque.submit()" required >
+                <option value="">Elige un producto</option>';
+    
+    for ($item = 1; $item <= $numDisenos; $item++) 
+    { if ($pdtoDisenos_sttdiseno[$item] == '1')
+      { echo '
+                <optgroup label="'.$pdtoDisenos_iddiseno[$item].'">';
+
+        for ($subItem = 1; $subItem <= $numImpresiones[$item]; $subItem++) 
+        { if ($pdtoImpresiones_sttimpresion[$item][$subItem] == '1')
+          { echo '
+                <option value="'.$pdtoImpresiones_cdgimpresion[$item][$subItem].'"';
+            
+            if ($vntsEmbarque_cdgproducto == $pdtoImpresiones_cdgimpresion[$item][$subItem]) 
+            { echo ' selected="selected"'; }
+
+            echo '>'.$pdtoImpresiones_impresion[$item][$subItem].' ('.$pdtoImpresiones_idimpresion[$item][$subItem].')</option>';            
+          }  
+        }
+
+        echo '
+                </optgroup>'; }
+    }
+    
+    echo '
+              </select>
+            </article>
+
+            <article>
+              <label><strong>Empaque</strong></label><br/>
+              <select id="slctCdgTipoEmpaque" name="slctCdgTipoEmpaque" required>
+                <option value="">Elige un tipo de empaque</option>';
+
+    for ($item = 1; $item <= $nTEmpaque; $item++) 
+    { echo '
+                <option value="'.$pdtoEmpaque_cdgempaque[$item].'"';
+            
+      if ($vntsEmbarque_cdgtpoempaque == $pdtoEmpaque_cdgempaque[$item]) 
+      { echo ' selected="selected"'; }
+
+      echo '>'.$pdtoEmpaque_empaque[$item].'</option>'; }
+    
+    echo '
+              </select>
+            </article>
+
+            <article>
+              <label><strong>Transporte</strong></label><br/>
+              <input type="text" id="textTransporte" name="textTransporte" value="'.$vntsEmbarque_transporte.'" required />
+            </article>
+
+            <article>
+              <label><strong>Referencia</strong></label><br/>
+              <input type="text" id="textReferencia" name="textReferencia" value="'.$vntsEmbarque_referencia.'" required />
+            </article>
+
+            <article>
+              <label><strong>Fecha embarque</strong></label><br/>
+              <input type="date" id="dateFchEmbarque" name="dateFchEmbarque" value="'.$vntsEmbarque_fchembarque.'" required />
+            </article>
+
+            <article>
+              <label for="label_observacion"><strong>Obsevaciones</strong></label><br/>
+                <input type="text" id="textObservacion" name="textObservacion" value="'.$vntsEmbarque_observacion.'" />
+            </article>
+
+            <article>
+              <input type="submit" id="bttnSalvar" name="bttnSalvar" value="Salvar" />
+            </article>        
+          </section>
+        </form>
+      </div>';
+
+    echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Embarques</label>
+        </article>
+        <label><strong>'.$nEmbarques.'</strong> Encontrado(s)</label>';
+
+    if ($nEmbarques > 0)
+    { for ($item=1; $item<=$nEmbarques; $item++)
+      { echo '
+        <section class="listado">
+          <article style="vertical-align:top">';
+
+        if ((int)$vntsEmbarques_sttembarque[$item] > 0)
+        { echo '
+            <a href="vntsEmbarque.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'">'.$_search.'</a>
+            <a href="vntsEmbarqueMaker.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'&cdgproducto='.$vntsEmbarques_cdgproducto[$item].'&cdgtpoempaque='.$vntsEmbarques_cdgtpoempaque[$item].'">'.$_link.'</a>
+            <a href="pdf/vntsEmbarquePdf.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'" target="_blank">'.$_acrobat.'</a>
+            <a href="pdf/vntsEmbarqueLbl.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'">'.$_delivery.'</a>
+            <a href="../sm_produccion/excel/prodEmbarque.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'">'.$_excel.'</a>
+            <a href="vntsEmbarque.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'&proceso=update">'.$_power_blue.'</a>'; 
+        } else
+        { echo '
+            <a href="vntsEmbarque.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'&proceso=delete">'.$_recycle_bin.'</a>
+            <a href="vntsEmbarque.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'&proceso=open">'.$_forder_open.'</a>
+            <a href="vntsEmbarque.php?cdgembarque='.$vntsEmbarques_cdgembarque[$item].'&proceso=update">'.$_power_black.'</a>'; }
+
+        echo '
+          </article>
+
+          <article>
+            <article style="text-align:right">
+              <label>Embarque</label><br/>
+              <label>O.C.</label><br/>
+              <label>Sucursal</label>
+            </article>
+
+            <article>
+              <label><strong>'.$vntsEmbarques_cdgembarque[$item].'</strong></label><br/>
+              <label><strong>'.$vntsEmbarque_oc[$vntsEmbarques_cdgembarque[$item]].'&nbsp;</strong></label><br/>
+              <label><strong>'.$vntsSucursales_sucursal[$vntsEmbarques_cdgsucursal[$item]].'</strong></label>              
+            </article>
+          </article>
+
+          <article>
+            <article style="text-align:right">
+              <label>Fecha de embarque</label><br/>
+              <label>Producto</label><br/>
+              <label>Referencia</label>              
+            </article>
+
+            <article>
+              <label><strong>'.$vntsEmbarques_fchembarque[$item].'</strong></label><br/>
+              <label><strong>'.$vntsEmbarque_productos[$vntsEmbarques_cdgproducto[$item]].'</strong></label><br/>
+              <label><strong>'.$vntsEmbarques_referencia[$item].'&nbsp;</strong></label>              
+            </article>
+          </article>
+        </section>'; }
+
+    echo '
+      </div>'; }
+
+    if ($msg_alert != '')
+    { echo '
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+  } else
+  { echo '
+    <div align="center"><h1>M&oacute;dulo no encontrado o bloqueado.</h1></div>'; }  
+ ?>
+
+  </body>
+</html>

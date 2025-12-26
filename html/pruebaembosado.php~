@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+
+<html>
+
+  <head>
+
+    <meta charset="UTF-8" />
+
+    <title>Registro del Embosado</title>
+
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+
+  </head>
+
+  <body>
+
+    <div id="contenedor">
+
+      <section>
+
+        <a href="ayudaBS.php#embosado"><img id="imagen_ayuda" src="../img_sistema/help_blue.png" border="0"/></a>
+
+        <Label><h1>Banda de Seguridad</h1></label>
+
+      </section><?php
+
+
+
+  include 'datos/mysql.php';
+echo "prueba";
+  $link = conectar();
+
+
+
+  m3nu_produccion();
+
+
+
+  $sistModulo_cdgmodulo = '60120';
+
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+
+
+  if ($sistModulo_modulo != '')
+
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+
+
+    if ($_SESSION['cdgusuario'])
+
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+
+
+      ma1n(); }
+
+
+
+    //Buscame los datos ingresados  
+
+    $prodEmbosado_cdgempleado = trim($_POST['textCdgEmpleado']);
+
+    $prodEmbosado_cdgmaquina = trim($_POST['textCdgMaquina']);   
+
+    $prodEmbosado_cdglote = trim($_POST['textCdgLote']);
+
+
+
+    //Buscar Empleado
+
+    $rechEmpleadoSelect = $link->query("
+
+      SELECT * FROM rechempleado 
+
+      WHERE (idempleado = '".$prodEmbosado_cdgempleado."' OR 
+
+             cdgempleado = '".$prodEmbosado_cdgempleado."') AND 
+
+             sttempleado >= '1'");
+
+      
+
+    if ($rechEmpleadoSelect->num_rows > 0)
+
+    { $regRechEmpleado = $rechEmpleadoSelect->fetch_object();
+
+
+
+      $prodEmbosado_idempleado = $regRechEmpleado->idempleado;
+
+      $prodEmbosado_empleado = $regRechEmpleado->empleado;
+
+      $prodEmbosado_cdgempleado = $regRechEmpleado->cdgempleado;
+
+
+
+      //Buscar Maquina
+
+      $prodMaquinaSelect = $link->query("
+
+        SELECT * FROM prodmaquina 
+
+        WHERE (idmaquina = '".$prodEmbosado_cdgmaquina."' OR 
+
+               cdgmaquina = '".$prodEmbosado_cdgmaquina."') AND 
+
+               cdgsubproceso = '006' AND 
+
+               sttmaquina >= '1'");
+
+      
+
+      if ($prodMaquinaSelect->num_rows > 0)
+
+      { $regProdMaquina = $prodMaquinaSelect->fetch_object();
+
+
+
+        $prodEmbosado_idmaquina = $regProdMaquina->idmaquina;
+
+        $prodEmbosado_maquina = $regProdMaquina->maquina;
+
+        $prodEmbosado_cdgmaquina = $regProdMaquina->cdgmaquina;
+
+
+
+        //Buscar lote 
+
+        $prodLoteSelect = $link->query("
+
+          SELECT proglote.idlote,
+
+                 proglote.lote,
+
+                 proglote.tarima,
+
+                 prodlote.serie,
+
+                 prodlote.noop,
+
+                 pdtobanda.banda,
+
+                 pdtobandap.bandap,
+
+                 pdtobandap.cdgbandap,
+
+                 prodlote.longitud,
+
+                 prodlote.amplitud,
+
+                 prodlote.peso,
+
+                 prodlote.cdglote,
+
+                 prodlote.sttlote
+
+            FROM proglote,
+
+                 prodlote,
+
+                 pdtobanda,
+
+                 pdtobandap,
+
+                 pdtosustrato
+
+           WHERE proglote.cdglote = prodlote.cdglote AND 
+
+                (prodlote.cdglote = '".$prodEmbosado_cdglote."' OR
+
+          CONCAT(prodlote.serie,'.',prodlote.noop) = '".$prodEmbosado_cdglote."') AND
+
+                (prodlote.cdgproducto = pdtobandap.cdgbandap AND 
+
+                 pdtobandap.cdgsustrato = pdtosustrato.cdgsustrato) AND
+
+                (pdtobanda.cdgbanda = pdtobandap.cdgbanda AND
+
+                 pdtobandap.preembosado = '0')");
+
+        
+
+        if ($prodLoteSelect->num_rows > 0)
+
+        { $regProdLote = $prodLoteSelect->fetch_object();
+
+
+
+          $prodEmbosado_idlote = $regProdLote->idlote;
+
+          $prodEmbosado_lote = $regProdLote->lote;
+
+          $prodEmbosado_tarima = $regProdLote->tarima;
+
+          $prodEmbosado_serie = $regProdLote->serie;
+
+          $prodEmbosado_noop = $regProdLote->noop;
+
+          $prodEmbosado_banda = $regProdLote->banda;
+
+          $prodEmbosado_bandap = $regProdLote->bandap;
+
+          $prodEmbosado_cdgbandap = $regProdLote->cdgbandap;          
+
+          $prodEmbosado_longitud = $regProdLote->longitud;
+
+          $prodEmbosado_amplitud = $regProdLote->amplitud;
+
+          $prodEmbosado_peso = $regProdLote->peso;
+
+          $prodEmbosado_cdglote = $regProdLote->cdglote;
+
+          $prodEmbosado_sttlote = $regProdLote->sttlote;
+
+  
+
+          if ($_POST['bttnBuscar'])
+
+          { // Salvar        
+	echo "entro";
+            $fchoperacion = date('Y-m-d');
+
+            // Verificar que la longitud ingresada sea numérica
+
+            if (is_numeric($_POST['textLongitud'])) { $prodEmbosado_longitudlote = $_POST['textLongitud']; }
+
+            // Verificar que la amplitud ingresada sea numérica
+
+            if (is_numeric($_POST['textAmplitud'])) { $prodEmbosado_amplitudlote = $_POST['textAmplitud']; }
+
+            // Verificar que el peso ingresado sea numérico
+
+            if (is_numeric($_POST['textPeso'])) { $prodEmbosado_pesolote = $_POST['textPeso']; }
+
+            // verifica que la cantidad de banderas sea numérico
+
+            if (is_numeric($_POST['textBandera'])) { $prodEmbosado_nbandera = $_POST['textBandera']; }
+
+
+
+            if ($prodEmbosado_longitudlote > 0)
+
+            { if ($prodEmbosado_amplitudlote > 0)
+
+              { if ($prodEmbosado_pesolote > 0)
+
+                { if ($prodEmbosado_sttlote == 'A')
+
+                  { // Registra la operación de embosado
+
+                    $link->query("
+
+                      INSERT INTO prodloteope
+
+                        (cdglote, cdgoperacion, cdgempleado, cdgmaquina, longitud, longitudfin, amplitud, amplitudfin, peso, pesofin, numbandera, fchoperacion, fchmovimiento)
+
+                      VALUES
+
+                        ('".$prodEmbosado_cdglote."', '20011', '".$prodEmbosado_cdgempleado."', '".$prodEmbosado_cdgmaquina."', '".$prodEmbosado_longitud."', '".$prodEmbosado_longitudlote."', '".$prodEmbosado_amplitud."', '".$prodEmbosado_amplitudlote."', '".$prodEmbosado_peso."', '".$prodEmbosado_pesolote."', '".$prodEmbosado_nbandera."', '".$fchoperacion."', NOW())");                       
+
+
+
+                    if ($link->affected_rows > 0) 
+
+                    { $msg_alert .= 'Operacion registrada. \n'; 
+
+
+
+                      $link->query("
+
+                        UPDATE prodlote
+
+                           SET sttlote = '1',
+
+                               longitud = '".$prodEmbosado_longitudlote."', 
+
+                               amplitud = '".$prodEmbosado_amplitudlote."',
+
+                               peso = '".$prodEmbosado_pesolote."',
+
+                               fchmovimiento = NOW()
+
+                         WHERE cdglote = '".$prodEmbosado_cdglote."' AND
+
+                               sttlote = 'A'");
+
+
+
+                      if ($link->affected_rows > 0) 
+
+                      { $msg_alert .= 'Lote afectado.'; 
+
+
+
+                        $link->query("
+
+                          UPDATE proglote
+
+                             SET sttlote = '9',
+
+                                 fchmovimiento = NOW()
+
+                           WHERE cdglote = '".$prodEmbosado_cdglote."'");
+
+                      } else
+
+                      { //Cancela toda la operacion
+
+                        $link->query("
+
+                          DELETE FROM prodloteope
+
+                           WHERE cdglote = '".$prodEmbosado_cdglote."' AND 
+
+                                 cdgoperacion = '20011'");
+
+
+
+                        $msg_alert .= 'No fue posible realizar el registro completo de la operación.'; }
+
+                    } else
+
+                    { $msg_alert .= 'No fue posible registrar la OPERACION.'; }
+
+                  } else
+
+                  { // Actualiza la operación de embosado
+
+                    if (substr($sistModulo_permiso,0,3) == 'rwx')
+
+                    { $link->query("
+
+                        UPDATE prodloteope
+
+                           SET cdgempleado = '".$prodEmbosado_cdgempleado."',
+
+                               cdgmaquina = '".$prodEmbosado_cdgmaquina."',
+
+                               longitudfin = '".$prodEmbosado_longitudlote."',
+
+                               amplitudfin = '".$prodEmbosado_amplitudlote."',
+
+                               pesofin = '".$prodEmbosado_pesolote."',
+
+                               numbandera = '".$prodLaminado_nbandera."'
+
+                         WHERE cdglote = '".$prodEmbosado_cdglote."' AND
+
+                               cdgoperacion = '20011'");
+
+
+
+                      if ($link->affected_rows > 0)
+
+                      { // Actualiza el lote
+
+                        $link->query("
+
+                          UPDATE prodlote
+
+                             SET longitud = '".$prodEmbosado_longitudlote."',
+
+                                 amplitud = '".$prodEmbosado_amplitudlote."',
+
+                                 peso = '".$prodEmbosado_pesolote."'
+
+                           WHERE cdglote = '".$prodEmbosado_cdglote."' AND
+
+                                (sttlote = '1' OR sttlote = '9')");
+
+                        
+
+                        if ($prodEmbosado_sttlote == '9')
+
+                        { // Actualiza la entrada para la siguiente operación
+
+                          $link->query("
+
+                            UPDATE prodloteope
+
+                               SET longitud = '".$prodEmbosado_longitudlote."', 
+
+                                   amplitud = '".$prodEmbosado_amplitudlote."', 
+
+                                   peso = '".$prodEmbosado_pesolote."'
+
+                             WHERE cdglote = '".$prodEmbosado_cdglote."' AND
+
+                                   cdgoperacion = '40011'");
+
+
+
+                          $prodEmbosado_cdglote = substr($prodEmbosado_cdglote,0,8);
+
+
+
+                          $link->query("
+
+                            UPDATE prodrolloope
+
+                               SET longitud = '".$prodEmbosado_longitudlote."',
+
+                                   amplitud = '".$prodEmbosado_amplitudlote."',
+
+                                   peso = '".$prodEmbosado_pesolote."'
+
+                             WHERE cdgrollo = '".$prodEmbosado_cdglote."' AND
+
+                                   cdgoperacion = '40011'");
+
+                        }
+
+                      } else
+
+                      { $msg_alert .= 'La captura no presento cambios.'; }
+
+                    } else
+
+                    { $msg_alert .= 'La operación Impresión ya fue registrada en este lote, no tienes permisos para editar el registro.'; }
+
+                  }
+
+                } else
+
+                { $msg_alert = 'Información de peso, incorrecta.'; } 
+
+              } else
+
+              { $msg_alert = 'Información de amplitud, incorrecta.'; } 
+
+            } else 
+
+            { $msg_alert = 'Información de longitud, incorrecta.'; }
+
+          }
+
+          
+
+          $prodEmbosado_cdglote = '';
+
+          // Fin de proceso de salvado
+
+        } else
+
+        { $prodEmbosado_cdglote = '';
+
+          $msg_alert = 'Información de lote, incorrecta.'; }
+
+      } else
+
+      { $prodEmbosado_cdgmaquina = '';
+
+        $msg_alert = 'Información de máquina, incorrecta.'; }
+
+    } else
+
+    { $prodEmbosado_cdgempleado = '';
+
+      $msg_alert = 'Información de empleado, incorrecta.'; }
+
+
+
+    if ($prodEmbosado_cdgempleado == '' OR $prodEmbosado_cdgmaquina == '' OR $prodEmbosado_cdglote == '')
+
+    { echo '
+
+      <div class="bloque">
+
+        <form id="formProdEmbosado" name="formProdEmbosado" method="POST" action="pruebaembosado.php"/>
+
+          <article class="subbloque">
+
+            <label class="modulo_nombre">Registro del Embosado</label>
+
+          </article>
+
+
+
+          <section class="subbloque">
+
+            <article>
+
+              <label>Empleado</label><br/>
+
+              <input type="text" id="textCdgEmpleado" name="textCdgEmpleado" value="'.$prodEmbosado_idempleado.'" required/>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Máquina</label><br/>
+
+              <input type="text" id="textCdgMaquina" name="textCdgMaquina" value="'.$prodEmbosado_idmaquina.'" required/>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Lote</label><br/>
+
+              <input type="text" id="textCdgLote" name="textCdgLote" value="'.$prodEmbosado_cdglote.'" />
+
+            </article>
+
+
+
+            <article><br/>
+
+              <input type="submit" id="bttnBuscar" name="bttnBuscar" value="Buscar" />
+
+            </article>
+
+          </section>
+
+        </form>
+
+      </div>'; 
+
+    } else
+
+    { echo '
+
+      <form id="formProdEmbosado" name="formProdEmbosado" method="post" action="prodEmbosadoBS.php"/>
+
+        <div class="bloque">
+
+          <input type="hidden" id="textCdgEmpleado" name="textCdgEmpleado" value="'.$prodEmbosado_cdgempleado.'" required/>
+
+          <input type="hidden" id="textCdgMaquina" name="textCdgMaquina" value="'.$prodEmbosado_cdgmaquina.'" required/>
+
+          <input type="hidden" id="textCdgLote" name="textCdgLote" value="'.$prodEmbosado_cdglote.'" required/>
+
+          
+
+          <article class="subbloque">
+
+            <label class="modulo_nombre">Registro del Embosado</label>
+
+          </article>
+
+          <a href="prodEmbosadoBS.php">'.$_gearback.'</a>
+
+          <label>NoOP <strong>'.$prodEmbosado_serie.'.'.$prodEmbosado_noop.'</strong></label>        
+
+
+
+          <section class="subbloque">
+
+            <article>
+
+              <label>Empleado</label><br/>
+
+              <label><b>'.$prodEmbosado_empleado.'</b></label>
+
+            </article><br/>
+
+
+
+            <article>
+
+              <label>Máquina</label><br/>
+
+              <label><b>'.$prodEmbosado_maquina.'</b></label>
+
+            </article><br/>
+
+
+
+            <article>
+
+              <label>Lote</label><br/>
+
+              <label><b>'.$prodEmbosado_tarima.' | '.$prodEmbosado_idlote.'</b> Ref. <b>'.$prodEmbosado_lote.'</b></label>
+
+            </article><br/>
+
+
+
+            <article>
+
+              <label>Banda</label><br/>
+
+              <label><b>'.$prodEmbosado_banda.'</b> | <b>'.$prodEmbosado_bandap.'</b></label>
+
+            </article><br/> 
+
+
+
+            <article>
+
+              <label>Longitud</label><br/>
+
+              <label><strong>'.number_format($prodEmbosado_longitud,2).'</strong> metros</label>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Ancho del sustrato</label><br/>
+
+              <label><strong>'.number_format($prodEmbosado_amplitud).' </strong> milímetros</label>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Peso</label><br/>
+
+              <label><strong>'.number_format($prodEmbosado_peso,3).'</strong> kilos</label>
+
+            </article>
+
+          </section>
+
+        </div>
+
+        
+
+        <div class="bloque">
+
+          <article class="subbloque">
+
+            <label class="modulo_listado">Información del lote</label>
+
+          </article>          
+
+
+
+          <section class="subbloque">
+
+            <article>
+
+              <label>Longitud</label><br/>
+
+              <input type="text" class="input_numero" id="textLongitud" name="textLongitud" value="'.$prodEmbosado_longitudlote.'" placeholder="metros" required/>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Amplitud</label><br/>
+
+              <input type="text" class="input_numero" id="textAmplitud" name="textAmplitud" value="'.$prodEmbosado_amplitudlote.'" placeholder="milímetros" required/>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Peso</label><br/>
+
+              <input type="text" class="input_numero" id="textPeso" name="textPeso" value="'.$prodEmbosado_pesolote.'" placeholder="kilogramos" required/>
+
+            </article>
+
+
+
+            <article>
+
+              <label>Flags</label><br/>
+
+              <input type="text" class="input_numero" id="textBandera" name="textBandera" value="'.$prodEmbosado_nbandera.'" placeholder="#" required/>
+
+            </article>            
+
+
+
+            <article><br/>
+
+              <input type="submit" id="bttnSalvar" name="bttnSalvar" value="Salvar" />
+
+            </article>         
+
+          </section>
+
+        </div>
+
+      </form>'; }
+
+
+
+    if ($msg_alert != '')
+
+    { echo '
+
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+
+  } else
+
+  { echo '
+
+      <div><h1>Módulo no disponible o bloqueado.</h1></div>'; }
+
+?>
+
+    </div>
+
+  </body>
+
+</html>

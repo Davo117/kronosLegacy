@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tablero de Control</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="tablero">      
+      <section>
+        <!-- <a href="ayuda.php"><img id="imagen_ayuda" src="../img_sistema/help_blue.png" border="0"/></a> -->
+        <Label><h1>Termoencogible</h1></label>
+      </section><?php
+
+  include '../datos/mysql.php';
+  
+  $link = conectar();
+
+  m3nu_produccion();
+
+  $sistModulo_cdgmodulo = '60TCT';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); }
+  }
+
+  $prodTablero_dsdano = date("Y");
+  $prodTablero_dsdmes = date("n");
+  $prodTablero_dsddia = date("j");
+
+  $prodTablero_diasmes = date("t", mktime(0,0,0,($prodTablero_dsdmes),1,$prodTablero_dsdano));
+
+  // DefiniciOn del bloque +6 dias.
+  if (($prodTablero_dsddia+6) > $prodTablero_diasmes)
+  { if ($prodTablero_dsdmes == 12)
+    { $prodTablero_hstano = (date("Y")+1); 
+      $prodTablero_hstmes = 1;
+      $prodTablero_hstdia = (($prodTablero_dsddia+6)-$prodTablero_diasmes);
+    } else
+    { $prodTablero_hstano = $prodTablero_dsdano; 
+      $prodTablero_hstmes = (date("n")+1);
+      $prodTablero_hstdia = (($prodTablero_dsddia+6)-$prodTablero_diasmes); }
+  } else
+  { $prodTablero_hstano = date("Y");
+    $prodTablero_hstmes = date("n");
+    $prodTablero_hstdia = (date("j")+6); } 
+  
+  $prodTablero_fechas[fchinicialA] = '2013-01-01';
+  $prodTablero_fechas[fchfinalA] = $prodTablero_hstano.'-'.str_pad($prodTablero_hstmes,2,'0',STR_PAD_LEFT).'-'.str_pad($prodTablero_hstdia,2,'0',STR_PAD_LEFT);
+
+  // DefiniciOn del bloque +7 a +14 dias.
+  if (($prodTablero_dsddia+7) > $prodTablero_diasmes)
+  { if ($prodTablero_dsdmes == 12)
+    { $prodTablero_hstanoB = (date("Y")+1); 
+      $prodTablero_hstmesB = 1;
+      $prodTablero_hstdiaB = (($prodTablero_dsddia+7)-$prodTablero_diasmes);
+    } else
+    { $prodTablero_hstanoB = $prodTablero_dsdano; 
+      $prodTablero_hstmesB = (date("n")+1);
+      $prodTablero_hstdiaB = (($prodTablero_dsddia+7)-$prodTablero_diasmes); }
+  } else
+  { $prodTablero_hstanoB = date("Y");
+    $prodTablero_hstmesB = date("n");
+    $prodTablero_hstdiaB = (date("j")+7); }
+
+  $prodTablero_fechas[fchinicialB] = $prodTablero_hstanoB.'-'.str_pad($prodTablero_hstmesB,2,'0',STR_PAD_LEFT).'-'.str_pad($prodTablero_hstdiaB,2,'0',STR_PAD_LEFT);
+
+  if (($prodTablero_dsddia+13) > $prodTablero_diasmes)
+  { if ($prodTablero_dsdmes == 12)
+    { $prodTablero_hstanoB = (date("Y")+1); 
+      $prodTablero_hstmesB = 1;
+      $prodTablero_hstdiaB = (($prodTablero_dsddia+13)-$prodTablero_diasmes);
+    } else
+    { $prodTablero_hstanoB = $prodTablero_dsdano; 
+      $prodTablero_hstmesB = (date("n")+1);
+      $prodTablero_hstdiaB = (($prodTablero_dsddia+13)-$prodTablero_diasmes); }
+  } else
+  { $prodTablero_hstanoB = date("Y");
+    $prodTablero_hstmesB = date("n");
+    $prodTablero_hstdiaB = (date("j")+13); }
+
+  $prodTablero_fechas[fchfinalB] = $prodTablero_hstanoB.'-'.str_pad($prodTablero_hstmesB,2,'0',STR_PAD_LEFT).'-'.str_pad($prodTablero_hstdiaB,2,'0',STR_PAD_LEFT);
+  
+  // DefiniciOn del bloque +14 +21 dias.
+  if (($prodTablero_dsddia+14) > $prodTablero_diasmes)
+  { if ($prodTablero_dsdmes == 12)
+    { $prodTablero_hstanoC = (date("Y")+1); 
+      $prodTablero_hstmesC = 1;
+      $prodTablero_hstdiaC = (($prodTablero_dsddia+14)-$prodTablero_diasmes);
+    } else
+    { $prodTablero_hstanoC = $prodTablero_dsdano; 
+      $prodTablero_hstmesC = (date("n")+1);
+      $prodTablero_hstdiaC = (($prodTablero_dsddia+14)-$prodTablero_diasmes); }
+  } else
+  { $prodTablero_hstanoC = date("Y");
+    $prodTablero_hstmesC = date("n");
+    $prodTablero_hstdiaC = (date("j")+14); }
+
+  $prodTablero_fechas[fchinicialC] = $prodTablero_hstanoC.'-'.str_pad($prodTablero_hstmesC,2,'0',STR_PAD_LEFT).'-'.str_pad($prodTablero_hstdiaC,2,'0',STR_PAD_LEFT);
+
+  if (($prodTablero_dsddia+20) > $prodTablero_diasmes)
+  { if ($prodTablero_dsdmes == 12)
+    { $prodTablero_hstanoC = (date("Y")+1); 
+      $prodTablero_hstmesC = 1;
+      $prodTablero_hstdiaC = (($prodTablero_dsddia+20)-$prodTablero_diasmes);
+    } else
+    { $prodTablero_hstanoC = $prodTablero_dsdano; 
+      $prodTablero_hstmesC = (date("n")+1);
+      $prodTablero_hstdiaC = (($prodTablero_dsddia+20)-$prodTablero_diasmes); }
+  } else
+  { $prodTablero_hstanoC = date("Y");
+    $prodTablero_hstmesC = date("n");
+    $prodTablero_hstdiaC = (date("j")+20); }
+
+  $prodTablero_fechas[fchfinalC] = $prodTablero_hstanoC.'-'.str_pad($prodTablero_hstmesC,2,'0',STR_PAD_LEFT).'-'.str_pad($prodTablero_hstdiaC,2,'0',STR_PAD_LEFT);
+
+  // DefiniciOn del bloque +21 dias en adelante.
+  if (($prodTablero_dsddia+21) > $prodTablero_diasmes)
+  { if ($prodTablero_dsdmes == 12)
+    { $prodTablero_hstanoD = (date("Y")+1); 
+      $prodTablero_hstmesD = 1;
+      $prodTablero_hstdiaD = (($prodTablero_dsddia+21)-$prodTablero_diasmes);
+    } else
+    { $prodTablero_hstanoD = $prodTablero_dsdano; 
+      $prodTablero_hstmesD = (date("n")+1);
+      $prodTablero_hstdiaD = (($prodTablero_dsddia+21)-$prodTablero_diasmes); }
+  } else
+  { $prodTablero_hstanoD = date("Y");
+    $prodTablero_hstmesD = date("n");
+    $prodTablero_hstdiaD = (date("j")+21); }
+
+  $prodTablero_fechas[fchinicialD] = $prodTablero_hstanoD.'-'.str_pad($prodTablero_hstmesD,2,'0',STR_PAD_LEFT).'-'.str_pad($prodTablero_hstdiaD,2,'0',STR_PAD_LEFT);
+
+  // Determinar que cantidad esta comprometida y aun no se ha cubierto
+  $vntsOCloteSelect = $link->query("
+    SELECT cdgproducto,
+           cdgempaque,
+       SUM(cantidad-surtido) AS millar
+      FROM vntsoclote
+     WHERE sttlote = '1'
+  GROUP BY cdgproducto,
+           cdgempaque");
+
+  if ($vntsOCloteSelect->num_rows > 0)
+  { while ($regVntsOClote = $vntsOCloteSelect->fetch_object())
+    { $prodTablero_vendidoE[$regVntsOClote->cdgproducto][$regVntsOClote->cdgempaque] = number_format($regVntsOClote->millar,3,'.',',');
+
+      $prodTablero_vendido[$regVntsOClote->cdgproducto] += $regVntsOClote->millar; }
+  }
+
+  // Determinar en que presentaciones se tiene pendiente distribuir
+  $vntsOCloteSelect = $link->query("
+    SELECT vntsoclote.cdgempaque,
+           vntsempaque.idempaque,
+           vntsempaque.empaque
+      FROM vntsoclote,
+           vntsempaque
+     WHERE vntsoclote.cdgempaque = vntsempaque.cdgempaque AND
+           vntsoclote.sttlote = '1'
+  GROUP BY vntsoclote.cdgempaque,
+           vntsempaque.empaque");
+
+  if ($vntsOCloteSelect->num_rows > 0)
+  { $idEmpaque = 1;
+    while ($regVntsOClote = $vntsOCloteSelect->fetch_object())
+    { $prodTablero_idempaque[$regVntsOClote->cdgempaque] = $regVntsOClote->idempaque;
+      $prodTablero_empaque[$idEmpaque] = $regVntsOClote->empaque;
+      $prodTablero_cdgempaque[$idEmpaque] = $regVntsOClote->cdgempaque;
+
+      $idEmpaque++; }
+
+    $numEmpaques = $vntsOCloteSelect->num_rows; }
+
+  // Filtrar los compromisos a +6 dias
+  $vntsOCloteSelect = $link->query("
+    SELECT cdgproducto,
+           cdgempaque,
+       SUM(cantidad-surtido) AS millar
+      FROM vntsoclote
+     WHERE sttlote = '1' AND
+          (fchembarque BETWEEN '".$prodTablero_fechas[fchinicialA]."' AND '".$prodTablero_fechas[fchfinalA]."')           
+  GROUP BY cdgproducto,
+           cdgempaque");
+
+  if ($vntsOCloteSelect->num_rows > 0)
+  { while ($regVntsOClote = $vntsOCloteSelect->fetch_object())
+    { $prodTablero_vendidoA[$regVntsOClote->cdgproducto] += number_format($regVntsOClote->millar,3,'.',''); 
+      $prodTablero_vendidoAD[$regVntsOClote->cdgproducto][$regVntsOClote->cdgempaque] = number_format($regVntsOClote->millar,3,'.','');  }
+  }
+
+  // Filtrar los compromisos de +7 a +13 dias
+  $vntsOCloteSelect = $link->query("
+    SELECT cdgproducto, 
+           cdgempaque, 
+       SUM(cantidad-surtido) AS millar
+      FROM vntsoclote
+     WHERE sttlote = '1' AND
+          (fchembarque BETWEEN '".$prodTablero_fechas[fchinicialB]."' AND '".$prodTablero_fechas[fchfinalB]."')           
+  GROUP BY cdgproducto, 
+           cdgempaque");
+
+  if ($vntsOCloteSelect->num_rows > 0)
+  { while ($regVntsOClote = $vntsOCloteSelect->fetch_object())
+    { $prodTablero_vendidoB[$regVntsOClote->cdgproducto] += number_format($regVntsOClote->millar,3,'.',''); 
+      $prodTablero_vendidoBD[$regVntsOClote->cdgproducto][$regVntsOClote->cdgempaque] = number_format($regVntsOClote->millar,3,'.','');}
+  }
+
+  // Filtrar los compromisos de +14 a +20 dias
+  $vntsOCloteSelect = $link->query("
+    SELECT cdgproducto, 
+           cdgempaque, 
+       SUM(cantidad-surtido) AS millar
+      FROM vntsoclote
+     WHERE sttlote = '1' AND
+          (fchembarque BETWEEN '".$prodTablero_fechas[fchinicialC]."' AND '".$prodTablero_fechas[fchfinalC]."')
+  GROUP BY cdgproducto, 
+           cdgempaque");
+ 
+  if ($vntsOCloteSelect->num_rows > 0)
+  { while ($regVntsOClote = $vntsOCloteSelect->fetch_object())
+    { $prodTablero_vendidoC[$regVntsOClote->cdgproducto] += number_format($regVntsOClote->millar,3,'.',''); 
+      $prodTablero_vendidoCD[$regVntsOClote->cdgproducto][$regVntsOClote->cdgempaque] = number_format($regVntsOClote->millar,3,'.','');}
+  }
+
+  // Filtrar los compromisos a +21 dias
+  $vntsOCloteSelect = $link->query("
+    SELECT cdgproducto, 
+           cdgempaque, 
+       SUM(cantidad-surtido) AS millar
+      FROM vntsoclote
+     WHERE sttlote = '1' AND 
+           fchembarque >= '".$prodTablero_fechas[fchinicialD]."'           
+  GROUP BY cdgproducto, 
+           cdgempaque");
+ 
+  if ($vntsOCloteSelect->num_rows > 0)
+  { while ($regVntsOClote = $vntsOCloteSelect->fetch_object())
+    { $prodTablero_vendidoD[$regVntsOClote->cdgproducto] += number_format($regVntsOClote->millar,3,'.',''); 
+      $prodTablero_vendidoDD[$regVntsOClote->cdgproducto][$regVntsOClote->cdgempaque] = number_format($regVntsOClote->millar,3,'.','');}
+  }
+
+  // Inventario en Lote
+  $prodLoteSelect = $link->query("
+    SELECT prodlote.cdgproducto,
+           prodlote.sttlote,
+     ((SUM(prodlote.longitud)/pdtojuego.altura)*(pdtojuego.alpaso)) AS millar
+      FROM prodlote,
+           prodloteope,
+           pdtodiseno,
+           pdtojuego,
+           pdtoimpresion
+    WHERE (prodlote.cdglote = prodloteope.cdglote AND
+           prodloteope.cdgoperacion = '10001') AND
+          (prodloteope.cdgjuego = pdtojuego.cdgjuego) AND
+          (pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+           pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1')
+  GROUP BY prodlote.cdgproducto,
+           prodlote.sttlote");
+
+  if ($prodLoteSelect->num_rows > 0)
+  { while ($regProdLote = $prodLoteSelect->fetch_object())
+    { // Programado
+      if ($regProdLote->sttlote == 'A' AND $regProdLote->millar > 0.001)
+      { $prodTablero_programado[$regProdLote->cdgproducto] = $regProdLote->millar; }
+
+      // Impreso
+      if ($regProdLote->sttlote == '1' AND $regProdLote->millar > 0.001)
+      { $prodTablero_impreso[$regProdLote->cdgproducto] = $regProdLote->millar; 
+        $prodTablero_sumaimpresion[$regProdLote->cdgproducto] += $regProdLote->millar; }
+
+      // Refilado
+      if ($regProdLote->sttlote == '9' AND $regProdLote->millar > 0.001)
+      { $prodTablero_impresoHistR[$regProdLote->cdgproducto] = $regProdLote->millar; }
+      
+      // Acumulado de impresión
+      if ($regProdLote->sttlote != 'A' AND $regProdLote->millar > 0.001)
+      { $prodTablero_impresoHist[$regProdLote->cdgproducto] += $regProdLote->millar; }
+    }
+  }
+
+  // Inventario en Bobina
+  $prodBobinaSelect = $link->query("
+    SELECT prodbobina.cdgproducto,
+           prodbobina.sttbobina,
+      SUM((prodbobina.longitud)/pdtojuego.altura) AS millar
+      FROM prodlote,
+           prodloteope,
+           prodbobina,
+           pdtoimpresion,
+           pdtojuego,
+           pdtodiseno
+    WHERE (prodlote.cdglote = prodloteope.cdglote AND
+           prodloteope.cdgoperacion = '10001' AND
+           prodbobina.cdglote = prodlote.cdglote) AND
+          (prodloteope.cdgjuego = pdtojuego.cdgjuego) AND
+          (pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+           pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1')
+  GROUP BY prodbobina.cdgproducto,
+           prodbobina.sttbobina");
+
+  if ($prodBobinaSelect->num_rows > 0)
+  { while ($regProdBobina = $prodBobinaSelect->fetch_object())
+    { // Refilado
+      if ($regProdBobina->sttbobina == '1' AND $regProdBobina->millar > 0.001)
+      { $prodTablero_refilado[$regProdBobina->cdgproducto] = $regProdBobina->millar; 
+        $prodTablero_sumasliteo[$regProdBobina->cdgproducto] += $regProdBobina->millar; }
+ 
+      // Liberado
+      if ($regProdBobina->sttbobina == '7' AND $regProdBobina->millar > 0.001)
+      { $prodTablero_liberado1[$regProdBobina->cdgproducto] = $regProdBobina->millar; 
+        $prodTablero_sumasliteo[$regProdBobina->cdgproducto] += $regProdBobina->millar; }
+
+      // Fusionado
+      if ($regProdBobina->sttbobina == '9' AND $regProdBobina->millar > 0.001)
+      { $prodTablero_refiladoHistF[$regProdBobina->cdgproducto] = $regProdBobina->millar; }
+
+      $prodTablero_refiladoHist[$regProdBobina->cdgproducto] += $regProdBobina->millar;
+    }
+  }
+
+  // Inventario en Rollo
+  $prodRolloSelect = $link->query("
+    SELECT prodrollo.cdgproducto,
+           prodrollo.sttrollo,
+      SUM((prodrollo.longitud)/pdtojuego.altura) AS millar
+      FROM prodlote,
+           prodloteope,
+           prodbobina,
+           prodrollo,
+           pdtoimpresion,
+           pdtojuego,
+           pdtodiseno
+    WHERE (prodlote.cdglote = prodloteope.cdglote AND
+           prodloteope.cdgoperacion = '10001' AND
+           prodbobina.cdglote = prodlote.cdglote AND
+           prodrollo.cdgbobina = prodbobina.cdgbobina) AND
+          (prodloteope.cdgjuego = pdtojuego.cdgjuego) AND
+          (pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+           pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1')
+  GROUP BY prodrollo.cdgproducto,
+           prodrollo.sttrollo");
+
+  if ($prodRolloSelect->num_rows > 0)
+  { while ($regProdRollo = $prodRolloSelect->fetch_object())
+    { if ($regProdRollo->sttrollo == '1' AND $regProdRollo->millar > 0.001)
+      { $prodTablero_fusionado[$regProdRollo->cdgproducto] = $regProdRollo->millar; 
+        $prodTablero_sumafusion[$regProdRollo->cdgproducto] += $regProdRollo->millar; }
+
+      if ($regProdRollo->sttrollo == '5' AND $regProdRollo->millar > 0.001)
+      { $prodTablero_cortadoHist[$regProdRollo->cdgproducto] = $regProdRollo->millar; }
+
+      if ($regProdRollo->sttrollo == '6' AND $regProdRollo->millar > 0.001)
+      { $prodTablero_revisado[$regProdRollo->cdgproducto] = $regProdRollo->millar; 
+	$prodTablero_revisadoHist[$regProdRollo->cdgproducto] += $regProdRollo->millar;
+        $prodTablero_sumafusion[$regProdRollo->cdgproducto] += $regProdRollo->millar;  }
+
+      if ($regProdRollo->sttrollo == '7' AND $regProdRollo->millar > 0.001)
+      { $prodTablero_liberado2[$regProdRollo->cdgproducto] = $regProdRollo->millar;
+	$prodTablero_revisadoHist[$regProdRollo->cdgproducto] +=$regProdRollo->millar; 
+        $prodTablero_sumafusion[$regProdRollo->cdgproducto] += $regProdRollo->millar;  }
+
+      if ($regProdRollo->sttrollo == '9' AND $regProdRollo->millar > 0.001)
+      { $prodTablero_fusionadoEmp[$regProdRollo->cdgproducto] = $regProdRollo->millar; }
+
+      $prodTablero_fusionadoHist[$regProdRollo->cdgproducto] += $regProdRollo->millar;
+    }
+  }
+
+  // Inventario Cortado
+  $prodPaqueteSelect = $link->query("
+    SELECT prodpaquete.cdgproducto,
+           prodpaquete.sttpaquete,
+       SUM(prodpaquete.cantidad) AS millar
+      FROM prodpaquete,
+           pdtodiseno,
+           pdtoimpresion
+     WHERE prodpaquete.cdgproducto = pdtoimpresion.cdgimpresion AND
+          (pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno AND
+           pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1')
+  GROUP BY prodpaquete.cdgproducto,
+           prodpaquete.sttpaquete");
+
+  if ($prodPaqueteSelect->num_rows > 0)
+  { while ($regProdPaquete = $prodPaqueteSelect->fetch_object())
+    { if ($regProdPaquete->sttpaquete == '1')
+      { $prodTablero_paquete[$regProdPaquete->cdgproducto] = number_format($regProdPaquete->millar,3,'.',''); 
+        $prodTablero_sumafusion[$regProdPaquete->cdgproducto] += $regProdPaquete->millar; }
+
+      if ($regProdPaquete->sttpaquete != 'C') 
+      { $prodTablero_paqueteAct[$regProdPaquete->cdgproducto] = $regProdPaquete->millar; }
+    }
+  }
+
+  // Inventario empacado en Queso
+  $prodRolloSelect = $link->query("
+SELECT prodrollo.cdgproducto,
+       SUM(alptempaquer.cantidad) AS millar
+      FROM alptempaque,
+           alptempaquer,
+           prodlote,
+           prodloteope,
+           prodbobina,
+           prodrollo,
+           pdtoimpresion,
+           pdtojuego,
+           pdtodiseno
+    WHERE (prodlote.cdglote = prodloteope.cdglote AND
+           prodloteope.cdgoperacion = '10001' AND
+           prodbobina.cdglote = prodlote.cdglote AND
+           prodrollo.cdgbobina = prodbobina.cdgbobina) AND
+          (prodloteope.cdgjuego = pdtojuego.cdgjuego) AND
+          (pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+           pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1') AND
+          (alptempaque.cdgempaque = alptempaquer.cdgempaque AND
+           alptempaquer.cdgrollo = prodrollo.cdgrollo AND
+           alptempaque.sttempaque = '1')
+  GROUP BY prodrollo.cdgproducto");
+
+  if ($prodRolloSelect->num_rows > 0)
+  { while ($regProdRollo = $prodRolloSelect->fetch_object())
+    { $prodTablero_queso[$regProdRollo->cdgproducto] = number_format($regProdRollo->millar,3,'.',''); 
+      $prodTablero_sumaterminado[$regProdRollo->cdgproducto] += $regProdRollo->millar; }
+  }
+
+  // Inventario en Caja
+  $prodPaqueteSelect = $link->query("
+    SELECT prodpaquete.cdgproducto,
+       SUM(prodpaquete.cantidad) AS millar
+      FROM alptempaque,
+           alptempaquep,
+           prodlote,
+           prodbobina,
+           prodrollo,
+           prodpaquete,
+           pdtoimpresion
+    WHERE (prodlote.cdglote = prodbobina.cdglote AND
+           prodbobina.cdgbobina = prodrollo.cdgbobina AND
+           prodrollo.cdgrollo = prodpaquete.cdgrollo AND
+           prodpaquete.cdgpaquete = alptempaquep.cdgpaquete) AND
+          (prodpaquete.cdgproducto = pdtoimpresion.cdgimpresion) AND
+           alptempaque.cdgempaque = alptempaquep.cdgempaque AND
+           alptempaque.sttempaque = '1'
+  GROUP BY prodpaquete.cdgproducto");
+
+  if ($prodPaqueteSelect->num_rows > 0)
+  { while ($regProdPaquete = $prodPaqueteSelect->fetch_object())
+    { $prodTablero_caja[$regProdPaquete->cdgproducto] = number_format($regProdPaquete->millar,3,'.',''); 
+      $prodTablero_sumaterminado[$regProdPaquete->cdgproducto] += $regProdPaquete->millar; }
+  }
+
+  // Producto enviado en Queso
+  $alptEmpaqueR_Select = $link->query("
+    SELECT pdtoimpresion.cdgimpresion,
+	         pdtoimpresion.impresion,
+	     SUM(alptempaquer.cantidad) AS millares,
+       SUM(alptempaquer.dev) AS devmillares
+	    FROM pdtodiseno,
+	         pdtoimpresion,
+	         alptempaque,
+	         alptempaquer
+	   WHERE pdtodiseno.sttdiseno = '1' AND
+	         pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+	         pdtoimpresion.cdgimpresion =  alptempaquer.cdgproducto AND
+	         alptempaque.sttempaque = 'E' AND
+	         alptempaque.cdgempaque = alptempaquer.cdgempaque
+	GROUP BY alptempaquer.cdgproducto");
+
+	if ($alptEmpaqueR_Select->num_rows > 0)
+	{ while ($regEmpaqueR = $alptEmpaqueR_Select->fetch_object())
+	  { $prodTablero_rolloenv[$regEmpaqueR->cdgimpresion] = $regEmpaqueR->millares;
+	    $prodTablero_productoenv[$regEmpaqueR->cdgimpresion] = $regEmpaqueR->millares;
+      $prodTablero_rollodev[$regEmpaqueR->cdgimpresion] = $regEmpaqueR->devmillares;
+      $prodTablero_productodev[$regEmpaqueR->cdgimpresion] = $regEmpaqueR->devmillares; }
+	}
+
+  // Producto enviado en Caja
+  $alptEmpaqueP_Select = $link->query("
+    SELECT pdtoimpresion.cdgimpresion,
+	         pdtoimpresion.impresion,
+	     SUM(alptempaquep.cantidad)  AS millares,
+       SUM(alptempaquep.dev) AS devmillares
+	    FROM pdtodiseno,
+	         pdtoimpresion,
+	         alptempaque,
+	         alptempaquep
+	   WHERE pdtodiseno.sttdiseno = '1' AND
+	         pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+	         pdtoimpresion.cdgimpresion =  alptempaquep.cdgproducto AND
+	         alptempaque.sttempaque = 'E' AND
+	         alptempaque.cdgempaque = alptempaquep.cdgempaque
+	GROUP BY alptempaquep.cdgproducto");
+
+	if ($alptEmpaqueP_Select->num_rows > 0)
+	{ while ($regEmpaqueP = $alptEmpaqueP_Select->fetch_object())
+	  { $prodTablero_cajaenv[$regEmpaqueP->cdgimpresion] = $regEmpaqueP->millares;
+	    $prodTablero_productoenv[$regEmpaqueP->cdgimpresion] += $regEmpaqueP->millares;
+      $prodTablero_cajadev[$regEmpaqueP->cdgimpresion] = $regEmpaqueP->devmillares;
+      $prodTablero_productodev[$regEmpaqueP->cdgimpresion] += $regEmpaqueP->devmillares; }
+	} 
+    
+  // Diseños activos
+  $pdtoDiseno_Select = $link->query("
+    SELECT * FROM pdtodiseno
+     WHERE sttdiseno = '1'
+  ORDER BY diseno,
+           iddiseno");
+
+  if ($pdtoDiseno_Select->num_rows > 0)
+  { $idDiseno = 0;
+    
+    while ($regPdtoDiseno = $pdtoDiseno_Select->fetch_object())
+    { // Impresiones activas por diseño      
+      $pdtoImpresion_Select = $link->query("
+        SELECT pdtodiseno.cdgdiseno,
+               pdtoimpresion.cdgimpresion,
+               pdtoimpresion.impresion,
+               pdtoimpresion.alto,               
+               pdtobanda.cdgbanda,
+               pdtobanda.banda
+          FROM pdtodiseno, 
+               pdtoimpresion,
+               pdtobanda
+         WHERE pdtodiseno.sttdiseno = '1' AND
+               pdtoimpresion.cdgdiseno = '".$regPdtoDiseno->cdgdiseno."' AND
+               pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgbanda = pdtobanda.cdgbanda AND
+               pdtoimpresion.sttimpresion = '1'
+      ORDER BY pdtodiseno.diseno,
+               pdtoimpresion.impresion");
+      
+      if ($pdtoImpresion_Select->num_rows > 0)
+      { $idDiseno++;
+        $idProducto = 0;
+
+        $prodTablero_diseno[$regPdtoDiseno->cdgdiseno] = $regPdtoDiseno->diseno;           
+        
+        while ($regPdtoImpresion = $pdtoImpresion_Select->fetch_object())
+        { $idProducto++;
+
+          $prodTablero_cdgdiseno[$idDiseno][$idProducto] = $regPdtoImpresion->cdgdiseno;
+          $prodTablero_impresion[$idDiseno][$idProducto] =  $regPdtoImpresion->impresion;
+          $prodTablero_cdgimpresion[$idDiseno][$idProducto] =  $regPdtoImpresion->cdgimpresion;
+          $prodTablero_alto[$idDiseno][$idProducto] = $regPdtoImpresion->alto;         
+          $prodTablero_banda[$idDiseno][$idProducto] = $regPdtoImpresion->banda;
+          $prodTablero_cdgbanda[$idDiseno][$idProducto] = $regPdtoImpresion->cdgbanda; 
+
+          // Consumo de sustrato para producto sin programar
+          $pdtoSustratoSPSelect = $link->query("
+            SELECT pdtoimpresion.cdgimpresion,
+                   pdtosustrato.sustrato,
+                (((pdtoimpresion.ancho*pdtoimpresion.alto)/1000)/pdtosustrato.rendimiento) AS consumo
+              FROM pdtoimpresion,
+                   pdtosustrato
+             WHERE pdtoimpresion.cdgimpresion = '".$regPdtoImpresion->cdgimpresion."' AND
+                   pdtosustrato.cdgsustrato = pdtoimpresion.cdgsustrato");
+
+          if ($pdtoSustratoSPSelect->num_rows > 0)          
+          { $regPdtoSustrato = $pdtoSustratoSPSelect->fetch_object();
+
+            $prodTablero_sustratosp[$regPdtoSustrato->cdgimpresion] = $regPdtoSustrato->sustrato;
+            $prodTablero_consumosp[$regPdtoSustrato->cdgimpresion] = $regPdtoSustrato->consumo; }
+        }
+
+        $nProductos[$idDiseno] = $pdtoImpresion_Select->num_rows; }
+    }
+
+    $nDisenos = $pdtoDiseno_Select->num_rows; }
+
+  // Histórico de programación
+  $infoHistoricoSelect = $link->query("
+    SELECT prodloteope.cdgjuego,
+           prodlote.cdgproducto,
+     ((SUM(prodloteope.longitud)/pdtojuego.altura)*(pdtojuego.alpaso)) AS millar
+      FROM prodlote,
+           prodloteope,
+           pdtodiseno,
+           pdtojuego,
+           pdtoimpresion
+    WHERE (prodlote.cdglote = prodloteope.cdglote AND
+           prodloteope.cdgoperacion = '20001') AND
+          (prodloteope.cdgjuego = pdtojuego.cdgjuego) AND
+          (pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+           pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1') AND
+           prodlote.sttlote BETWEEN '1' AND '9'
+  GROUP BY prodloteope.cdgjuego,
+           prodlote.cdgproducto");
+
+  while ($regInfoHistorico = $infoHistoricoSelect->fetch_object())
+  { $prodTableroHistorico[$regInfoHistorico->cdgproducto] += $regInfoHistorico->millar; }
+
+  // Producto embarcado como rollo
+  $vntsEmbarqueSelect = $link->query("
+    SELECT vntsembarque.cdgproducto,
+     SUM(alptempaquer.cantidad) AS embarcado
+      FROM pdtodiseno,
+           pdtoimpresion,
+           vntsembarque,
+           alptempaque,
+           alptempaquer
+    WHERE (pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = vntsembarque.cdgproducto) AND
+          (vntsembarque.cdgembarque = alptempaque.cdgembarque AND
+           alptempaque.cdgempaque = alptempaquer.cdgempaque) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1') AND
+           vntsembarque.cdglote = ''
+  GROUP BY vntsembarque.cdgproducto");
+
+  if ($vntsEmbarqueSelect->num_rows > 0)
+  { while ($regVntsEmbarque = $vntsEmbarqueSelect->fetch_object())
+    { $prodTablero_embarcado[$regVntsEmbarque->cdgproducto] += $regVntsEmbarque->embarcado; }
+  }
+
+  // Producto embarcado como paquete
+  $vntsEmbarqueSelect = $link->query("
+    SELECT vntsembarque.cdgproducto,
+     SUM(alptempaquep.cantidad) AS embarcado
+      FROM pdtodiseno,
+           pdtoimpresion,
+           vntsembarque,
+           alptempaque,
+           alptempaquep
+    WHERE (pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+           pdtoimpresion.cdgimpresion = vntsembarque.cdgproducto) AND
+          (vntsembarque.cdgembarque = alptempaque.cdgembarque AND
+           alptempaque.cdgempaque = alptempaquep.cdgempaque) AND
+          (pdtodiseno.sttdiseno = '1' AND
+           pdtoimpresion.sttimpresion = '1') AND
+           vntsembarque.cdglote = ''
+  GROUP BY vntsembarque.cdgproducto");
+
+  if ($vntsEmbarqueSelect->num_rows > 0)
+  { while ($regVntsEmbarque = $vntsEmbarqueSelect->fetch_object())
+    { $prodTablero_embarcado[$regVntsEmbarque->cdgproducto] += $regVntsEmbarque->embarcado; }
+  }
+
+  // Armado del tablero
+  for ($idDiseno=1; $idDiseno<=$nDisenos; $idDiseno++)
+  { for ($idProducto=1; $idProducto<=$nProductos[$idDiseno]; $idProducto++)
+    { $prodTablero_total = ($prodTablero_sumaimpresion[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_sumasliteo[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_sumafusion[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_queso[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_caja[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_embarcado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]);
+
+      if ($prodTablero_total > 0 OR $prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0 OR $prodTablero_productoenv[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0 OR $prodTablero_vendidoA[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0 OR $prodTablero_vendidoB[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0 OR $prodTablero_vendidoC[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0 OR $prodTablero_vendidoD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0)
+      { $prodTablero_sumexistencia[0] += $prodTablero_total;
+        $prodTablero_sumexistencia[$idDiseno] += $prodTablero_total; 
+
+        $sinprogramar = 0;
+        $sinprogramar = $prodTablero_total-$prodTablero_vendido[$prodTablero_cdgimpresion[$idDiseno][$idProducto]];
+    
+        if ($sinprogramar >= 0) 
+        { $colortexto = 'blue'; }
+        else 
+        { $colortexto = 'red'; 
+
+          $sinprogramar = $prodTablero_vendido[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_total; }
+
+          echo '
+      <div class="bloque">
+        <section class="subbloque">
+          <label class="modulo_nombre">Producto <a href="../sm_inspeccion/inspBuscador.php?cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'"><b>'.$prodTablero_diseno[$prodTablero_cdgdiseno[$idDiseno][$idProducto]].' | '.$prodTablero_impresion[$idDiseno][$idProducto].'</b></a></label><br/>
+          
+          <article style="vertical-align:top">
+            <section class="subbloque">
+              <label><b>Información</b></label><br/>
+
+              <div class="subbloque" style="text-align:right"> 
+                <article>
+                  <label>Histórico</label><br/>
+                  <label><b>'.number_format($prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label>
+                </article>
+              </div><br/>
+              
+              <div class="subbloque" style="text-align:right"> 
+                <article>
+                  <label>Pendiente por entregar</label><br/>
+                  <label><b>'.number_format($prodTablero_vendido[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3,'.',',').'</b></label>
+                </article><br/>
+
+                <article>
+                  <label>Inventario en proceso</label><br/>
+                  <label><b>'.number_format($prodTablero_total,3).'</b></label>
+                </article>
+              </div><br/>
+
+              <div class="subbloque" style="text-align:right"> 
+                <article>
+                  <label>Enviado</label><br/>
+                  <label><i>'.number_format($prodTablero_cajaenv[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3,'.',',').'</i></label><br/>
+                  <label><i>'.number_format($prodTablero_rolloenv[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3,'.',',').'</i></label><br/>
+                  <label><b>'.number_format(($prodTablero_productoenv[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_embarcado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),3).'</b></label>
+                </article>';
+
+          if ($prodTablero_productodev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0)
+          { echo '<br/>
+
+                <article>
+                  <label>Devuelto</label>';
+
+            if ($prodTablero_cajadev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]] > 0)
+            { echo '<br/>
+                  <label><i>'.number_format($prodTablero_cajadev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3,'.',',').'</i></label>'; }
+
+            if ($prodTablero_productodev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])
+            { echo '<br/>
+                  <label><i>'.number_format($prodTablero_rollodev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3,'.',',').'</i></label>'; }
+                  
+            echo '<br/>
+                  <label><b>'.number_format($prodTablero_productodev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3,'.', ',').'</b></label>
+                 </article>'; }
+
+          echo '
+              </div><br/>
+
+              <div class="subbloque" style="text-align:right"> 
+                <label><h2>Scrap <a href="pdf/prodMermaPdf.php?cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank"><i>'.number_format(((($prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-($prodTablero_total+(($prodTablero_productoenv[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_embarcado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])-$prodTablero_productodev[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])))*100)/$prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),2,'.',',').'%</i></a></h2></label>
+              </div>
+            </section>
+          </article>
+
+          <article style="vertical-align:top">
+            <section class="subbloque">
+              <label><b>Producto en proceso</b></label><br/>
+
+              <article style="vertical-align:top"> 
+                <div class="subbloque" style="text-align:right">
+                  <label><a href="pdf/prodLotesPdf.php?sttlote=A&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Programado</a></label>
+                  <a href="pdf/prodLotesBC.php?sttlote=A&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format(($prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),3).'</b></label><br/>
+                  <label style="color:'.$colortexto.'"><b>'.number_format(($sinprogramar),3).'</b></label>
+                </div><br/>
+
+                <div class="subbloque" style="text-align:right">
+                  <label><a href="pdf/prodLotesPdf.php?sttlote=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Impreso</a></label>
+                  <a href="pdf/prodLotesBC.php?sttlote=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_impreso[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>              
+                  <label>Scrap <i>'.number_format(((($prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_impresoHist[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*100)/$prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),2).'%</i></label>
+                </div><br/>
+
+                <div class="subbloque" style="text-align:right">
+                  <label><a href="pdf/prodBobinasPdf.php?sttbobina=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Sliteado</a></label>
+                  <a href="pdf/prodBobinasBC.php?sttbobina=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_refilado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>
+                  <label>Scrap <i>'.number_format(((($prodTablero_impresoHistR[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_refiladoHist[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*100)/$prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),2).'%</i></label>
+                </div>
+              </article>
+
+              <article style="vertical-align:top"> 
+                <div class="subbloque" style="text-align:right">                  
+                  <label><a href="pdf/prodRollosPdf.php?sttrollo=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Fusionado</></label>
+                  <a href="pdf/prodRollosBC.php?sttrollo=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_fusionado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>
+                  <label>Scrap <i>'.number_format(((($prodTablero_refiladoHistF[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_fusionadoHist[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*100)/$prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),2).'%</i></label>
+                </div><br/>
+
+                <div class="subbloque" style="text-align:right">                  
+                  <label><a href="pdf/prodRollosPdf.php?sttrollo=6&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Revisado</a></label>
+                  <a href="pdf/prodRollosBC.php?sttrollo=6&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_revisado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>
+                  <label>Scrap <i>'.number_format(((($prodTablero_fusionadoHist[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_revisadoHist[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*10)/$prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),2).'%</i></label>
+                </div><br/>
+
+                <div class="subbloque" style="text-align:right">                  
+                  <label><a href="pdf/prodPaquetesPdf.php?sttpaquete=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Cortado</a></label>
+                  <a href="pdf/prodPaquetesBC.php?sttpaquete=1&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_paquete[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>
+                  <label>Scrap <i>'.number_format(((($prodTablero_cortadoHist[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]-$prodTablero_paqueteAct[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*100)/$prodTableroHistorico[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),2).'%</i></label>
+                </div>
+              </article>
+
+              <article style="vertical-align:top">
+                <div class="subbloque" style="text-align:right">                  
+                  <label><a href="excel/prodPaquete.php?cdgimpresion='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'">'.$prodTablero_idempaque['C'].'</a></label>
+                  <a href="../sm_almacenpt/pdf/alptEmpaqueBCEC.php?cdgimpresion='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_caja[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>
+                  <label>&nbsp;<i>'.$prodTablero_vendidoE[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]['C'].'</i></label>                  
+                </div><br/>
+
+                <div class="subbloque" style="text-align:right">                  
+                  <label><a href="excel/prodRollo.php?cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'">'.$prodTablero_idempaque['Q'].'</a></label>
+                  <a href="../sm_almacenpt/pdf/alptEmbarqueBCE.php?cdgimpresion='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_queso[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label><br/>
+                  <label>&nbsp;<i>'.$prodTablero_vendidoE[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]['Q'].'</i></label>                  
+                </div><br/>
+
+                <div class="subbloque" style="text-align:right">                  
+                  <label>Embarcado</label>
+                  <a href="#">'.$png_barcode.'</a><br/>
+                  <label><b>'.number_format($prodTablero_embarcado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]],3).'</b></label>
+                </div>
+              </article>
+            </section>
+          </article>
+
+          <article style="vertical-align:top">
+            <section class="subbloque">
+              <label><b><a href="pdf/prodEntregasPdf.php?dsdfecha=2012-01-01&hstfecha=2099-12-31&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Plan de entregas</a></b></label><br/>
+
+              <div class="subbloque" style="text-align:right">
+                <label><a href="pdf/prodEntregasPdf.php?dsdfecha='.$prodTablero_fechas[fchinicialA].'&hstfecha='.$prodTablero_fechas[fchfinalA].'&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">De 0-7 días</a></label><br/>';
+          
+          for ($idEmpaque=1; $idEmpaque<=$numEmpaques; $idEmpaque++)
+          { if ($prodTablero_vendidoAD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]] > 0)
+            { echo'
+                <label title="'.$prodTablero_empaque[$idEmpaque].'">'.$prodTablero_cdgempaque[$idEmpaque].' <b>'.$prodTablero_vendidoAD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]].'</b></label><br>'; }
+          }
+
+          echo '                  
+              </div><br/>
+
+              <div class="subbloque" style="text-align:right">
+                <label><a href="pdf/prodEntregasPdf.php?dsdfecha='.$prodTablero_fechas[fchinicialB].'&hstfecha='.$prodTablero_fechas[fchfinalB].'&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">De 8-14 días</a></label><br/>';
+            
+          for ($idEmpaque=1; $idEmpaque<=$numEmpaques; $idEmpaque++)
+          { if ($prodTablero_vendidoBD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]] > 0)
+            { echo'
+                <label title="'.$prodTablero_empaque[$idEmpaque].'">'.$prodTablero_cdgempaque[$idEmpaque].' <b>'.$prodTablero_vendidoBD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]].'</b></label><br>'; }
+          }
+
+          echo '
+              </div><br/>
+
+              <div class="subbloque" style="text-align:right">
+                <label><a href="pdf/prodEntregasPdf.php?dsdfecha='.$prodTablero_fechas[fchinicialC].'&hstfecha='.$prodTablero_fechas[fchfinalC].'&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">De 15-21 días</a></label><br/>';
+            
+          for ($idEmpaque=1; $idEmpaque<=$numEmpaques; $idEmpaque++)
+          { if ($prodTablero_vendidoCD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]] > 0)
+            { echo'
+                <label title="'.$prodTablero_empaque[$idEmpaque].'">'.$prodTablero_cdgempaque[$idEmpaque].' <b>'.$prodTablero_vendidoCD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]].'</b></label><br>'; }
+          }
+
+          echo '
+              </div><br/>
+ 
+              <div class="subbloque" style="text-align:right">
+                <label><a href="pdf/prodEntregasPdf.php?dsdfecha='.$prodTablero_fechas[fchinicialD].'&hstfecha=2099-12-31&cdgproducto='.$prodTablero_cdgimpresion[$idDiseno][$idProducto].'" target="_blank">Más de 21 días</a></label><br/>';
+            
+          for ($idEmpaque=1; $idEmpaque<=$numEmpaques; $idEmpaque++)
+          { if ($prodTablero_vendidoDD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]] > 0)
+            { echo'
+                <label title="'.$prodTablero_empaque[$idEmpaque].'">'.$prodTablero_cdgempaque[$idEmpaque].' <b>'.$prodTablero_vendidoDD[$prodTablero_cdgimpresion[$idDiseno][$idProducto]][$prodTablero_cdgempaque[$idEmpaque]].'</b></label><br>'; }
+          }
+
+          echo '
+              </div>
+            </section>
+          </article>';
+
+          if ($colortexto == 'red')
+          { echo '
+          <article style="vertical-align:top">
+            <section class="subbloque">
+              <label><b>Necesidad de Materia Prima</b></label><br/>
+
+              <div class="subbloque">
+                <article>
+                  <label>Sustrato<label><br/>
+                  <label><b>'.$prodTablero_sustratosp[$prodTablero_cdgimpresion[$idDiseno][$idProducto]].'</b></label><br/>
+                  <label><i>'.number_format(($prodTablero_consumosp[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]*$sinprogramar),3).'</i> kgs | <i>'.number_format(($prodTablero_consumosp[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]*$prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),3).'</i> kgs</label>
+                </article>
+              </div><br/>';
+
+            $pdtoImpresionTnt = $link->query("
+              SELECT pdtoimpresiontnt.cdgtinta,
+                     pdtopantone.pantone,
+                     pdtopantone.HTML,
+                     pdtoimpresiontnt.consumo
+                FROM pdtoimpresiontnt,
+                     pdtopantone
+               WHERE pdtoimpresiontnt.cdgtinta = pdtopantone.cdgpantone AND
+                     pdtoimpresiontnt.cdgimpresion = '".$prodTablero_cdgimpresion[$idDiseno][$idProducto]."'
+            ORDER BY pdtoimpresiontnt.notinta");
+
+            if ($pdtoImpresionTnt->num_rows > 0)
+            { echo '
+              <div class="subbloque">
+                <article>
+                  <label>Tintas</label><br/>';
+
+              while ($regPdtoImpresionTnt = $pdtoImpresionTnt->fetch_object())
+              { echo '
+                  <label style="border-radius: 4px;background-color:#'.$regPdtoImpresionTnt->HTML.';color:#'.$regPdtoImpresionTnt->HTML.'">##</label>
+                  <label><b>'.$regPdtoImpresionTnt->pantone.'</b></label><br/>
+                  <label>'.number_format(($regPdtoImpresionTnt->consumo*$sinprogramar),3).'</label> kgs | <label>'.number_format(($regPdtoImpresionTnt->consumo*$prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]),3).' kgs</label><br/>'; }            
+            echo '
+                </article>
+              </div><br/>
+
+              <div class="subbloque">
+                <article>
+                  <label>Banda de seguridad</label><br>
+                  <label><b>'.$prodTablero_banda[$idDiseno][$idProducto].'</b></label><br/>
+                  <label><i>'.number_format((($prodTablero_sumaimpresion[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_sumasliteo[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$sinprogramar)*$prodTablero_alto[$idDiseno][$idProducto]),2).'</i> mts</label>
+                </article>
+              </div>              
+            </section>
+          </article>'; }
+          } else
+          { if (number_format((($prodTablero_sumaimpresion[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_sumasliteo[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*$prodTablero_alto[$idDiseno][$idProducto]),2) > 0)
+            { echo '
+          <article style="vertical-align:top">
+            <section class="subbloque">
+              <label><b>Necesidad de Materia Prima</b></label>
+                
+              <section class="subbloque">
+                <article>
+                  <label>Banda de seguridad</label><br>
+                  <label><b>'.$prodTablero_banda[$idDiseno][$idProducto].'</b></label><br/>
+                  <label><i>'.number_format((($prodTablero_sumaimpresion[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_sumasliteo[$prodTablero_cdgimpresion[$idDiseno][$idProducto]]+$prodTablero_programado[$prodTablero_cdgimpresion[$idDiseno][$idProducto]])*$prodTablero_alto[$idDiseno][$idProducto]),2).'</i> mtrs</label>
+                </article><br/>
+              </section>
+            </section>'; }
+          }
+
+          echo '
+          </article>
+        </section>
+      </div><br/>';  
+        }
+      }
+    }
+?>
+    </div>
+  </body>
+</html>

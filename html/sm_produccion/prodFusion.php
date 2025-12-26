@@ -1,0 +1,643 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Registro de la Fusión</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">
+      <section>
+        
+        <Label><h1>Termoencogible</h1></label>
+      </section><?php
+
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_produccion();
+
+  $sistModulo_cdgmodulo = '60040';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); }
+
+    //Buscame los datos ingresados
+    $prodFusion_fecha = date("Y-m-d");
+    $prodFusion_cdgempleado = trim($_POST['textCdgEmpleado']);
+    $prodFusion_cdgmaquina = trim($_POST['textCdgMaquina']);
+    $prodFusion_cdgbobina = trim($_POST['textCdgBobina']);
+    $prodFusion_cdgdisco = trim($_POST['textCdgDisco']);
+    
+    if ($_GET['cdgempleado'])
+    { $prodFusion_cdgempleado = $_GET['cdgempleado']; }
+
+    if ($_GET['cdgmaquina'])
+    { $prodFusion_cdgmaquina = $_GET['cdgmaquina']; }
+
+    //Buscar Empleado
+    $rechEmpleadoSelect = $link->query("
+      SELECT * FROM rechempleado
+       WHERE (idempleado = '".$prodFusion_cdgempleado."' OR 
+              cdgempleado = '".$prodFusion_cdgempleado."') AND
+              sttempleado >= '1'");
+
+    if ($rechEmpleadoSelect->num_rows > 0)
+    { $regRechEmpleado = $rechEmpleadoSelect->fetch_object();
+
+      $prodFusion_idempleado = $regRechEmpleado->idempleado;
+      $prodFusion_empleado = $regRechEmpleado->empleado;
+      $prodFusion_cdgempleado = $regRechEmpleado->cdgempleado;
+      
+      //Buscar Maquina del subproceso
+      $prodMaquinaSelect = $link->query("
+        SELECT * FROM prodmaquina 
+        WHERE (idmaquina = '".$prodFusion_cdgmaquina."' OR 
+               cdgmaquina = '".$prodFusion_cdgmaquina."') AND 
+               cdgsubproceso = '003' AND 
+               sttmaquina >= '1'");
+
+      if ($prodMaquinaSelect->num_rows > 0)
+      { $regProdMaquina = $prodMaquinaSelect->fetch_object();
+
+        $prodFusion_idmaquina = $regProdMaquina->idmaquina;
+        $prodFusion_maquina = $regProdMaquina->maquina;
+        $prodFusion_cdgmaquina = $regProdMaquina->cdgmaquina;
+
+        //Buscar lote Proceso        
+        $prodBobinaSelect = $link->query("
+          SELECT proglote.idlote,
+                 proglote.lote,
+                 proglote.tarima,
+                 prodlote.serie,
+          CONCAT(prodlote.noop,'-',prodbobina.bobina) AS noop,                 
+                 pdtodiseno.diseno,
+                 pdtoimpresion.alto,
+                 pdtoimpresion.rollo,
+                 pdtoimpresion.impresion,
+                 pdtoimpresion.cdgimpresion,
+                 prodbobina.longitud,
+                 prodbobina.amplitud,
+                 prodbobina.peso,
+                 prodbobina.cdgbobina,       
+                 prodbobina.sttbobina
+            FROM proglote,
+                 prodlote,
+                 prodbobina,
+                 pdtoimpresion,
+                 pdtodiseno
+          WHERE (proglote.cdglote = prodlote.cdglote AND 
+                 prodlote.cdglote = prodbobina.cdglote) AND
+                (prodbobina.cdgbobina = '".$prodFusion_cdgbobina."' OR 
+          CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina) = '".$prodFusion_cdgbobina."') AND
+                (prodbobina.cdgproducto = pdtoimpresion.cdgimpresion AND
+                 pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno)");
+
+        if ($prodBobinaSelect->num_rows > 0)
+        { // Filtra la bobina
+          $regProdBobina = $prodBobinaSelect->fetch_object();
+
+          $prodFusion_idlote = $regProdBobina->idlote;
+          $prodFusion_lote = $regProdBobina->lote;
+          $prodFusion_tarima = $regProdBobina->tarima;
+          $prodFusion_serie = $regProdBobina->serie;
+          $prodFusion_noop = $regProdBobina->noop;          
+          $prodFusion_diseno = $regProdBobina->diseno;
+          $prodFusion_alto = $regProdBobina->alto;
+          $prodFusion_rollo = $regProdBobina->rollo;
+          $prodFusion_impresion = $regProdBobina->impresion;
+          $prodFusion_cdgimpresion = $regProdBobina->cdgimpresion;
+          $prodFusion_longitud = $regProdBobina->longitud;
+          $prodFusion_amplitud = $regProdBobina->amplitud;
+          $prodFusion_peso = $regProdBobina->peso;          
+          $prodFusion_cdgbobina = $regProdBobina->cdgbobina;
+          $prodFusion_sttbobina = $regProdBobina->sttbobina;
+
+          $clcMillares = ($regProdBobina->longitud/$prodFusion_alto);
+          $prodFusion_numrollos = ceil((($prodFusion_longitud/$prodFusion_alto)/$prodFusion_rollo));
+
+          // Inicia el proceso de salvado
+          if ($_POST['bttnSalvar'])
+          { $fchoperacion = date('Y-m-d');
+
+            $error_longitud = false;
+            // Validar que la longitud de los nuevos rollos sea numérica          
+            for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+            { if ($_POST['textLongitud'.$item] == 0)
+              { $prodFusion_longitudrollo[$item] = $_POST['textLongitud'.$item];
+              } else
+              { if (is_numeric($_POST['textLongitud'.$item]))
+                { $prodFusion_longitudrollo[$item] = $_POST['textLongitud'.$item];
+                } else
+                { $error_longitud = true;
+
+                  $item = $prodFusion_numrollos+1; }
+              }
+            }
+
+            $error_amplitud = false;
+            // Validar que la amplitud de los nuevos rollos sea numérica          
+            for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+            { if (is_numeric($_POST['textAmplitud'.$item]))
+              { $prodFusion_amplitudrollo[$item] = $_POST['textAmplitud'.$item];
+              } else
+              { $error_amplitud = true;
+
+                $item = $prodFusion_numrollos+1; }
+            }
+                
+            $error_bandera = false;
+            // Validar que la cantidad de banderas en los nuevos rollos sea numérica
+            for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+            { if (is_numeric($_POST['textBandera'.$item]))
+              { $prodFusion_banderarollo[$item] = $_POST['textBandera'.$item];
+              } else
+              { $error_bandera = true;
+
+                $item = $prodFusion_numrollos+1; }
+            }
+
+
+            $error_disco = false;
+            // Validar que la cantidad de banderas en los nuevos rollos sea numérica
+            for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+            { if ($_POST['textCdgDisco'.$item] == '000')
+              { $prodFusion_cdgdiscorollo[$item] = $_POST['textCdgDisco'.$item];
+              } else
+              { $prodDiscoSelect = $link->query("
+                  SELECT * FROM proddisco
+                   WHERE cdgdisco = '".$_POST['textCdgDisco'.$item]."'");
+
+                if ($prodDiscoSelect->num_rows > 0)
+                { $prodFusion_cdgdiscorollo[$item] = $_POST['textCdgDisco'.$item]; 
+                } else
+                { $error_disco = true;
+
+                  $item = $prodFusion_numrollos+1; }
+              }
+            }
+
+            // Verifica que todo este en orden         
+            if ($error_disco == false)
+            { if ($error_longitud == false)
+              { if ($error_amplitud == false)
+                { if ($error_bandera == false)
+                  { if ($prodFusion_sttbobina == '1')
+                    { $link->query("
+                        INSERT INTO prodbobinaope
+                          (cdgbobina, cdgoperacion, cdgempleado, cdgmaquina, longitud, peso, merma, fchoperacion, fchmovimiento)
+                        VALUES
+                          ('".$prodFusion_cdgbobina."', '40001', '".$prodFusion_cdgempleado."', '".$prodFusion_cdgmaquina."', '".$prodFusion_longitud."', '".$prodFusion_peso."', '".$prodFusion_merma."', '".$fchoperacion."', NOW())");
+
+                      $nRollosF = 0;
+                      for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+                      { $prodFusion_cdgrollo = substr($prodFusion_cdgbobina,0,9).$item.'00';
+                        
+                        if ($prodFusion_longitudrollo[$item] > 0)
+                        { $nRollosF++;
+
+                          $link->query("
+                            INSERT INTO prodrollo
+                                    (cdgbobina, rollo, cdgproducto, cdgproceso, longitud, amplitud, peso, bandera, cdgrollo, fchmovimiento)
+                            VALUES
+                              ('".$prodFusion_cdgbobina."', '".$item."', '".$prodFusion_cdgimpresion."', '50', '".$prodFusion_longitudrollo[$item]."', '".$prodFusion_amplitudrollo[$item]."', '".$prodFusion_pesorollo[$item]."', '".$prodFusion_banderarollo[$item]."', '".$prodFusion_cdgrollo."', NOW())");
+
+                          $msg_alert .= 'Fusion de rollo '.$item.' \n';
+                          
+                          $prodRolloOpeInsert = $link->query("
+                            INSERT INTO prodrolloope
+                              (cdgrollo, cdgoperacion, cdgempleado, cdgmaquina, cdgdisco, longitud, longitudfin, peso, numbandera, fchoperacion, fchmovimiento)
+                            VALUES
+                              ('".$prodFusion_cdgrollo."', '40001', '".$prodFusion_cdgempleado."', '".$prodFusion_cdgmaquina."', '".$prodFusion_cdgdiscorollo[$item]."', '".$prodFusion_longitudrollos."', '".$prodFusion_longitudrollo[$item]."', '".$prodFusion_pesorollo[$item]."', '".$prodFusion_banderarollo[$item]."', '".$fchoperacion."', NOW())"); 
+
+                          $link->query("
+                            UPDATE proddisco
+                               SET sttdisco = '9'
+                             WHERE cdgdisco = '".$prodFusion_cdgdiscorollo[$item]."'"); }
+                      }
+
+                      $prodFusion_longitudrollos = ($prodFusion_longitud/$nRollosF);
+
+                      $link->query("
+                        UPDATE prodrolloope
+                           SET longitud = '".$prodFusion_longitudrollos."'
+                         WHERE cdgrollo LIKE '".substr($prodFusion_cdgbobina,0,9)."%' AND
+                               cdgoperacion = '40001'");
+
+                      $link->query("
+                        UPDATE prodbobina
+                           SET sttbobina = '9',
+                               fchmovimiento = NOW()
+                         WHERE cdgbobina = '".$prodFusion_cdgbobina."'");
+
+                      if ($link->affected_rows > 0)
+                      { $msg_alert .= 'Bobina afectada.'; }
+
+                      $msg_modulo = '<a href="pdf/prodRollosBC.php?cdgbobina='.$prodFusion_cdgbobina.'" target="_blank">Generar etiquetas</a>';
+                    } else
+                    { // Actualiza la operación de fusión
+                      if (substr($sistModulo_permiso,0,3) == 'rwx')
+                      { for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+                        { $prodFusion_cdgrollo = substr($prodFusion_cdgbobina,0,9).$item.'00'; 
+
+                          $prodRolloSelect = $link->query("
+                            SELECT * FROM prodrollo
+                             WHERE cdgrollo = '".$prodFusion_cdgrollo."'");
+
+                          if ($prodRolloSelect->num_rows > 0)
+                          { $regProdRollo = $prodRolloSelect->fetch_object();
+
+                            $prodRollo_sttrollo = $regProdRollo->sttrollo;
+
+                            $link->query("
+                              UPDATE prodrolloope
+                                 SET cdgempleado = '".$prodFusion_cdgempleado."',
+                                     cdgmaquina = '".$prodFusion_cdgmaquina."',
+                                     longitud = '".$prodFusion_longitudrollos."',
+                                     longitudfin = '".$prodFusion_longitudrollo[$item]."',
+                                     numbandera = '".$prodFusion_banderarollo[$item]."'
+                               WHERE cdgrollo = '".$prodFusion_cdgrollo."' AND
+                                     cdgoperacion = '40001'");
+
+                            if ($link->affected_rows > 0) 
+                            { // Actualiza el rollo
+                              if ($prodRollo_sttrollo == '1')
+                              { $link->query("
+                                  UPDATE prodrollo
+                                     SET longitud = '".$prodFusion_longitudrollo[$item]."',
+                                         amplitud = '".$prodFusion_amplitudrollo[$item]."',
+                                         bandera = '".$prodFusion_banderarollo[$item]."'
+                                   WHERE cdgrollo = '".$prodFusion_cdgrollo."' AND
+                                         sttrollo = '1'"); }
+                              
+                              if ($prodRollo_sttrollo == '5')
+                              { $prodRolloOpeSelect = $link->query("
+                                  SELECT * FROM prodrolloope
+                                   WHERE cdgrollo = '".$prodFusion_cdgrollo."' AND
+                                         cdgoperacion = '40006'");
+
+                                if ($prodRolloSelect->num_rows > 0)
+                                { $link->query("
+                                    UPDATE prodrolloope
+                                       SET cdgempleado = '".$prodFusion_cdgempleado."',
+                                           cdgmaquina = '".$prodFusion_cdgmaquina."',
+                                           longitud = '".$prodFusion_longitudrollo[$item]."'
+                                     WHERE cdgrollo = '".$prodFusion_cdgrollo."' AND
+                                           cdgoperacion = '40006'");
+                                } else
+                                { $link->query("
+                                    UPDATE prodrolloope
+                                       SET cdgempleado = '".$prodFusion_cdgempleado."',
+                                           cdgmaquina = '".$prodFusion_cdgmaquina."',
+                                           longitud = '".$prodFusion_longitudrollo[$item]."'
+                                     WHERE cdgrollo = '".$prodFusion_cdgrollo."' AND
+                                           cdgoperacion = '50001'"); }
+                              } 
+
+                              if ($prodRollo_sttrollo == '6')
+                              { $link->query("
+                                  UPDATE prodrolloope
+                                     SET cdgempleado = '".$prodFusion_cdgempleado."',
+                                         cdgmaquina = '".$prodFusion_cdgmaquina."',
+                                         longitud = '".$prodFusion_longitudrollo[$item]."'
+                                   WHERE cdgrollo = '".$prodFusion_cdgrollo."' AND
+                                         cdgoperacion = '40006'"); }
+                            }
+                          } // Fin de la búsqueda de bobinas 
+                        }
+                      } else
+                      { $msg_alert .= 'La operación Fusión ya fue registrada en esta bobina, no tienes permisos para editar el registro.'; }
+
+                      $msg_modulo = '<a href="pdf/prodRollosBC.php?cdgbobina='.$prodFusion_cdgbobina.'" target="_blank">Generar etiquetas</a>';
+                    }
+
+                    $prodFusion_cdgbobina = '';
+                  } else
+                  { $msg_alert = 'Información de banderas, incorrecta.'; } 
+                } else
+                { $msg_alert = 'Información de amplitudes, incorrecta.'; }                
+              } else
+              { $msg_alert = 'Información de longitudes, incorrecta.'; }
+            } else
+            { $msg_alert = 'Información de discos, incorrecta.'; }
+          }
+          // Fin del proceso de salvado 
+        } else
+        { $prodFusion_cdgbobina = '';
+          $msg_alert = 'Información de bobina, incorrecta.'; }
+      } else
+      { $prodFusion_cdgmaquina = '';
+        $msg_alert = 'Información de máquina, incorrecta.'; }
+    } else
+    { $prodFusion_cdgempleado = '';
+      $msg_alert = 'Información de empleado, incorrecta.'; }
+
+    if ($prodFusion_cdgempleado == '' OR $prodFusion_cdgmaquina == '' OR $prodFusion_cdgbobina == '')
+    { echo '
+      <div class="bloque">
+        <form id="formProdFusion" name="formProdFusion" method="post" action="prodFusion.php"/>
+          <article class="subbloque">
+            <label class="modulo_nombre">Registro de la Fusión</label>
+          </article>
+
+          <section class="subbloque">
+            <article>
+              <label>Operador</label><br/>
+              <input type="text" id="textCdgEmpleado" name="textCdgEmpleado" value="'.$prodFusion_idempleado.'" required/>
+            </article>
+
+            <article>
+              <label>Máquina</label><br/>
+              <input type="text" id="textCdgMaquina" name="textCdgMaquina" value="'.$prodFusion_idmaquina.'" required/>
+            </article>
+
+            <article>
+              <label>Bobina</label><br/>
+              <input type="text" id="textCdgBobina" name="textCdgBobina" value="'.$prodFusion_cdgbobina.'" required/>
+            </article>
+
+            <article>
+              <label>Disco (Referencia)</label><br/>
+              <input type="text" id="textCdgDisco" name="textCdgDisco" value="'.$prodFusion_cdgdisco.'" required/>
+            </article>            
+
+            <article><br/>
+              <input type="submit" id="bttnBuscar" name="bttnBuscar" value="Buscar" />
+            </article>
+          </section>
+        </form>
+      </div>'; 
+    } else
+    { echo '
+      <form id="formProdFusion" name="formProdFusion" method="post" action="prodFusion.php"/>
+        <div class="bloque">
+          <input type="hidden" id="textCdgEmpleado" name="textCdgEmpleado" value="'.$prodFusion_cdgempleado.'" />
+          <input type="hidden" id="textCdgMaquina" name="textCdgMaquina" value="'.$prodFusion_cdgmaquina.'" />
+          <input type="hidden" id="textCdgBobina" name="textCdgBobina" value="'.$prodFusion_cdgbobina.'" />
+      
+          <article class="subbloque">
+            <label class="modulo_nombre">Registro de la Fusión</label>
+          </article>
+          <a href="prodFusion.php">'.$_gearback.'</a>
+          <label>NoOP <strong>'.$prodFusion_serie.'.'.$prodFusion_noop.'</strong></label>
+
+          <section class="subbloque">
+            <article>
+              <label>Operador</label><br/>
+              <label><b>'.$prodFusion_empleado.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Máquina</label><br/>
+              <label><b>'.$prodFusion_maquina.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Lote</label><br/>
+              <label><b>'.$prodFusion_tarima.' | '.$prodFusion_idlote.'</b> Ref. <b>'.$prodFUsion_lote.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Diseño</label><br/>
+              <label><b>'.$prodFusion_diseno.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Impresión</label><br/>
+              <label><b>'.$prodFusion_impresion.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Longitud</label><br/>
+              <label><strong>'.number_format($prodFusion_longitud,2).'</strong> metros</label>
+            </article>
+
+            <article>
+              <label>Ancho del sustrato</label><br/>
+              <label><strong>'.number_format($prodFusion_amplitud).' </strong> milímetros</label>
+            </article>
+
+            <article>
+              <label>Peso</label><br/>
+              <label><strong>'.number_format($prodFusion_peso,3).'</strong> kilos</label>
+            </article>
+
+            <article><br/>
+              <input type="submit" id="bttnSalvar" name="bttnSalvar" value="Salvar" />
+            </article>
+          </section>
+        </div>'; 
+
+      if ($prodFusion_numrollos > 0)
+      { for ($item = 1; $item <= $prodFusion_numrollos; $item++)
+        { if ($prodFusion_cdgdiscorollo[$item] == '')
+          { $prodFusion_cdgdiscorollo[$item] = $_POST['textCdgDisco']; }
+
+          echo '
+        <div class="bloque">
+          <article class="subbloque">
+            <label class="modulo_listado">Información del rollo '.$item.'</label>
+          </article>
+
+          <section class="subbloque">
+            <article>
+              <label>Disco (Banda de seguridad)</label><br />
+              <input type="text" id="textCdgDisco'.$item.'" name="textCdgDisco'.$item.'" value="'.$prodFusion_cdgdiscorollo[$item].'" placeholder="código" required/>
+            </article>
+
+            <article>
+              <label>Longitud en metros</label><br />
+              <input type="text" id="textLongitud'.$item.'" name="textLongitud'.$item.'" value="'.$prodFusion_longitudrollo[$item].'" placeholder="metros" required/>
+            </article>
+
+            <article>
+              <label>Amplitud en milímetros</label><br />
+              <input type="text" id="textAmplitud'.$item.'" name="textAmplitud'.$item.'" value="'.$prodFusion_amplitudrollo[$item].'" placeholder="milímetros" required/>
+            </article>
+
+            <article>
+              <label>Banderas</label><br/>
+              <input type="text" id="textBandera'.$item.'" name="textBandera'.$item.'" value="'.$prodFusion_banderarollo[$item].'" placeholder="#" required/>
+            </article>
+          </section>
+        </div>'; }
+      }
+
+      echo '
+      </form>'; }
+
+    // Filtro de empleados por jornada
+    $prodRolloOpeSelectEmpleado = $link->query("
+      SELECT prodrolloope.cdgempleado, 
+             rechempleado.empleado
+        FROM prodrolloope, 
+             rechempleado
+       WHERE cdgoperacion = '40001' AND
+             prodrolloope.cdgempleado = rechempleado.cdgempleado AND
+             prodrolloope.fchmovimiento LIKE '".$prodFusion_fecha."%'
+    GROUP BY prodrolloope.cdgempleado
+    ORDER BY rechempleado.empleado");
+
+    if ($prodRolloOpeSelectEmpleado->num_rows > 0)
+    { $idEmpleado = 0;
+      while ($regProdRolloOpe = $prodRolloOpeSelectEmpleado->fetch_object())
+      { $idEmpleado++;
+
+        $prodData_cdgempleado[$idEmpleado] = $regProdRolloOpe->cdgempleado;
+        $prodData_empleado[$idEmpleado] = $regProdRolloOpe->empleado; }
+
+      $nEmpleados = $prodRolloOpeSelectEmpleado->num_rows; 
+
+      // Filtro de horas por jornada    
+      $prodRolloOpeSelectHoras = $link->query("
+        SELECT CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS horas
+          FROM prodrolloope
+         WHERE cdgoperacion = '40001' AND
+               fchmovimiento LIKE '".$prodFusion_fecha."%'
+      GROUP BY SUBSTRING(fchmovimiento,1,14)");
+
+      if ($prodRolloOpeSelectHoras->num_rows > 0)
+      { $idHora = 0;
+        while ($regProdHorario = $prodRolloOpeSelectHoras->fetch_object())
+        { $idHora++;
+
+          $prodData_hora[$idHora] = $regProdHorario->horas; }
+
+        $nHoras = $prodRolloOpeSelectHoras->num_rows; 
+
+        // Filtro de produccion por jornada IN
+        $prodBobinaOpeSelect = $link->query("
+          SELECT cdgempleado, 
+          CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS hora, 
+             SUM(longitud) AS longitud, 
+             SUM(merma) AS merma
+            FROM prodbobinaope
+           WHERE cdgoperacion = '40001' AND
+                 fchmovimiento LIKE '".$prodFusion_fecha."%'
+        GROUP BY cdgempleado, 
+       SUBSTRING(fchmovimiento,1,14)");
+
+        while ($regQuery = $prodBobinaOpeSelect->fetch_object())
+        { $prodData_mtrs[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->longitud;
+          $prodData_mtrsxempleado[$regQuery->cdgempleado] += $regQuery->longitud;
+          $prodData_mtrsxhora[$regQuery->hora] += $regQuery->longitud;
+          $prodData_mtrsxdia += $regQuery->longitud;
+
+          $prodData_merma[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->merma;
+          $prodData_mermaxempleado[$regQuery->cdgempleado] += $regQuery->merma;
+          $prodData_mermaxhora[$regQuery->hora] += $regQuery->merma;
+          $prodData_mermaxdia += $regQuery->merma; }
+
+        // Filtro de produccion por jornada OUT
+        $prodRolloOpeSelect = $link->query("
+          SELECT cdgempleado, 
+          CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS hora, 
+             SUM(longitudfin) AS longitud, 
+             SUM(numbandera) AS bandera
+            FROM prodrolloope
+           WHERE cdgoperacion = '40001' AND
+                 fchmovimiento LIKE '".$prodFusion_fecha."%'
+        GROUP BY cdgempleado, 
+       SUBSTRING(fchmovimiento,1,14)");
+
+        while ($regQuery = $prodRolloOpeSelect->fetch_object())
+        { $prodData_metros[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->longitud;
+          $prodData_metrosxempleado[$regQuery->cdgempleado] += $regQuery->longitud;
+          $prodData_metrosxhora[$regQuery->hora] += $regQuery->longitud;
+          $prodData_metrosxdia += $regQuery->longitud;
+
+          $prodData_banderas[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->bandera;
+          $prodData_banderasxempleado[$regQuery->cdgempleado] += $regQuery->bandera;
+          $prodData_banderasxhora[$regQuery->hora] += $regQuery->bandera;
+          $prodData_banderasxdia += $regQuery->bandera; }
+      }
+    }
+
+    echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Tablero de seguimiento por hora</label>
+        </article>
+
+        <section class="subbloque">
+          <table align="center">
+            <thead>
+              <tr><td></td>';
+
+    for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+    { echo '
+                <td colspan="3"><strong>'.$prodData_empleado[$idEmpleado].'</strong></td>'; }
+
+    echo '
+                <td colspan="3"></td></tr>
+              <tr align="right"><td><b>Horarios</b></td>';
+
+    for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+    { echo '
+                <th align="center">Metros In</th>
+                <th align="center">Metros Out</th>
+                <th>Banderas</th>'; }
+
+    echo '
+                <th align="center">Metros In</th>
+                <th align="center">Metros Out</th>                
+                <td>Banderas</td></tr>
+            </thead>
+            <tbody>';
+
+    for ($idHora=1; $idHora<=$nHoras; $idHora++)
+    { echo '
+              <tr align="right">
+                <th>'.$prodData_hora[$idHora].'</th>';
+
+      for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+      { echo '
+                <td>'.number_format($prodData_mtrs[$prodData_cdgempleado[$idEmpleado]][$prodData_hora[$idHora]],2).'</td> 
+                <td>'.number_format($prodData_metros[$prodData_cdgempleado[$idEmpleado]][$prodData_hora[$idHora]],2).'</td>           
+                <td align="center">'.$prodData_banderas[$prodData_cdgempleado[$idEmpleado]][$prodData_hora[$idHora]].'</td>'; }
+
+      echo '
+                <th>'.number_format($prodData_mtrsxhora[$prodData_hora[$idHora]],2).'</th>
+                <th>'.number_format($prodData_metrosxhora[$prodData_hora[$idHora]],2).'</th>          
+                <th align="center">'.$prodData_banderasxhora[$prodData_hora[$idHora]].'</th>
+              <tr>'; } 
+
+    echo '
+              <tr align="right"><td>Totales</td>';
+
+    for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+    { echo '
+                <th>'.number_format($prodData_mtrsxempleado[$prodData_cdgempleado[$idEmpleado]],2).'</th> 
+                <th>'.number_format($prodData_metrosxempleado[$prodData_cdgempleado[$idEmpleado]],2).'</th>          
+                <th align="center">'.$prodData_banderasxempleado[$prodData_cdgempleado[$idEmpleado]].'</th>'; }
+
+    echo '
+                <td><strong>'.number_format($prodData_mtrsxdia,2).'</strong></td>
+                <td><strong>'.number_format($prodData_metrosxdia,2).'</strong></td>
+                <td align="center"><strong>'.$prodData_banderasxdia.'</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>';
+
+    if ($msg_modulo != '')
+    { echo '
+      <div align="center"><strong>'.$msg_modulo.'</strong></div>'; }
+
+    if ($msg_alert != '')
+    { echo '
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+  } else
+  { echo '
+      <div><h1>Módulo no disponible o bloqueado.</h1></div>'; }
+?>
+    </div>
+  </body>
+</html>

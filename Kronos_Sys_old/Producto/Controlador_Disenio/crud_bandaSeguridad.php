@@ -1,0 +1,88 @@
+<?php
+
+include_once 'db_Producto.php';
+
+/* Inicio Código Insertar */
+//Si se dio clic en guardar:
+if(isset($_POST['save']))
+{
+	//Pasamos los parametros por medio de post
+	$nombre= $MySQLiconn->real_escape_string($_POST['nombreBanda']);
+	$identificador =$MySQLiconn->real_escape_string($_POST['identificador']);   
+	$anchura = $MySQLiconn->real_escape_string($_POST['anchura']);
+	if($anchura>0)
+	{
+		 $SQL =$MySQLiconn->query("INSERT INTO bandaseguridad(nombreBanda,identificador,anchura) VALUES('$nombre','$identificador','$anchura')");
+	 
+	 //En caso de ser diferente la consulta:
+	 if(!$SQL)
+	 {
+	 	//Mandar el mensaje de error
+		 echo $MySQLiconn->error;
+	 } else{
+	 //Mandamos un mensaje de exito:
+	 echo"<script>alert('Se ha Agregado una nueva banda de seguridad')</script>";
+	 }
+	}
+	else
+	{
+		 echo"<script>alert('La anchura no puede ser cero')</script>";
+	}
+	//Realizamos la consulta
+	
+}
+/* Fin Código Insertar */
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+/* Inicio Código Eliminación Logíca */
+//Si se dio clic en Eliminar de forma logica:
+if(isset($_GET['del']))
+{	//Lanzamos la consulta actualizando la baja a 0
+	$SQL = $MySQLiconn->query("UPDATE bandaseguridad SET baja=0 WHERE IDBanda=".$_GET['del']);
+	 //Mandamos un mensaje de exito:
+	 echo"<script>alert('Se ha Dado de Baja Exitosamente')</script>";
+	echo "<script>window.location='Producto_BandasSeguridad.php';</script>";
+}
+/* Fin Código Eliminación Logíca  */
+
+/* Inicio Código Eliminación Definitiva 
+if(isset($_GET['del']))
+{ //Cambiar el parametro "del" para que no haya conflictos:
+	$SQL = $MySQLiconn->query("DELETE FROM empleado WHERE id=".$_GET['del']);
+	header("Location: index.php");
+}
+ Fin Código Eliminación Definitiva */
+
+
+
+/* Inicio Código Atualizar  */
+if(isset($_GET['edit']))
+{
+	$SQL = $MySQLiconn->query("SELECT * FROM bandaseguridad WHERE IDBanda=".$_GET['edit']);
+	$getROW = $SQL->fetch_array();
+}
+
+if(isset($_POST['update']))
+{
+	$SQL = $MySQLiconn->query("UPDATE bandaseguridad SET identificador='".$_POST['identificador']."', nombreBanda='".$_POST['nombreBanda']."', anchura=".$_POST['anchura']." WHERE IDBanda=".$_GET['edit']);
+
+	header("Location: Producto_BandasSeguridad.php");
+	 
+}
+
+	if(isset($_GET['ban']))
+{
+	$MySQLiconn->query("UPDATE cache set dato='".$_GET['ban']."' where id=4");
+	header("Location: Producto_BandasSPP.php?ban=".$_GET['ban']."");
+}
+if(isset($_GET['acti']))
+{
+	$MySQLiconn->query("UPDATE bandaseguridad set baja=1 where IDBanda=".$_GET['acti']."");
+	header("Location: Producto_BandasSeguridad_bajas.php");
+}
+if(isset($_GET['delfin']))
+{
+	$MySQLiconn->query("DELETE from bandaseguridad where IDBanda=".$_GET['delfin']."");
+	header("Location: Producto_BandasSeguridad_bajas.php");
+}
+

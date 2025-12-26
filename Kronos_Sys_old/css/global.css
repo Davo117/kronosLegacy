@@ -1,0 +1,22 @@
+
+body
+{
+   background:#E3E5E5;
+}
+a  
+{   
+ text-decoration:none; 
+ color:#363E50;  
+}  
+
+
+p
+{
+  
+   font:bold 30px Sansation;
+}
+.message
+{
+  text-align:center;
+  padding-top:250px;
+}

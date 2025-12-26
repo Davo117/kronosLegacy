@@ -1,0 +1,547 @@
+<?php
+
+  include '../../datos/mysql.php';	
+  include '../../fpdf/fpdf.php';
+
+  $link = conectar();
+
+  if ($_GET['cdgsucursal'])
+  { // Buscar la sucursal
+    $vntsSucursalSelect = $link->query("
+      SELECT * FROM vntssucursal
+       WHERE cdgsucursal = '".$_GET['cdgsucursal']."'"); 
+
+    if ($vntsSucursalSelect->num_rows > 0)
+    { $regVntsSucursal = $vntsSucursalSelect->fetch_object();
+      
+      $prodEntregas_sucursal = $regVntsSucursal->sucursal;      
+      $prodEntregas_cdgsucursal = $regVntsSucursal->cdgsucursal;
+    } else
+    { $prodEntregas_sucursal = 'Todas';
+      $prodEntregas_cdgsucursal = ''; }
+  } else
+  { $prodEntregas_sucursal = 'Todas';
+    $prodEntregas_cdgsucursal = ''; }
+
+  if ($_GET['cdgproducto'])
+  { // Buscar el producto
+    $pdtoImpresionSelect = $link->query("
+      SELECT pdtodiseno.diseno,
+             pdtoimpresion.impresion,
+             pdtoimpresion.cdgimpresion
+        FROM pdtodiseno,
+             pdtoimpresion
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = '".$_GET['cdgproducto']."'"); 
+
+    if ($pdtoImpresionSelect->num_rows > 0)
+    { $regPdtoImpresion = $pdtoImpresionSelect->fetch_object();
+
+      $prodEntregas_producto = $regPdtoImpresion->diseno.' | '.$regPdtoImpresion->impresion;      
+      $prodEntregas_cdgproducto = $regPdtoImpresion->cdgimpresion;
+    } else
+    { $prodEntregas_producto = 'Todos';
+      $prodEntregas_cdgproducto = ''; }
+  } else
+  { $prodEntregas_producto = 'Todos';
+    $prodEntregas_cdgproducto = ''; }
+
+  // Catálogo de sucursales
+  $vntsSucursalSelect = $link->query("
+    SELECT * FROM vntssucursal
+  ORDER BY sucursal");
+
+  if ($vntsSucursalSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regVntsSucursal = $vntsSucursalSelect->fetch_object())
+    { $item++;
+
+      $vntsEntrega_sucursal[$item] = $regVntsSucursal->sucursal;
+      $vntsEntrega_cdgsucursal[$item] = $regVntsSucursal->cdgsucursal;
+
+      $vntsEntregas_sucursales[$regVntsSucursal->cdgsucursal] = $regVntsSucursal->sucursal; }
+
+    $nSucursales = $item; }
+
+  // Catalogo de productos
+  $pdtoImpresionSelect = $link->query("
+    SELECT pdtodiseno.diseno,
+           pdtoimpresion.impresion,
+           pdtoimpresion.cdgimpresion
+      FROM pdtodiseno,
+           pdtoimpresion
+     WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno
+  ORDER BY pdtoimpresion.impresion");
+
+  if ($pdtoImpresionSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regPdtoImpresion = $pdtoImpresionSelect->fetch_object())
+    { $item++;
+
+      $vntsEntrega_producto[$item] = $regPdtoImpresion->diseno.' | '.$regPdtoImpresion->impresion;
+      $vntsEntrega_cdgproducto[$item] = $regPdtoImpresion->cdgimpresion;
+
+      $vntsEntregas_productos[$regPdtoImpresion->cdgimpresion] = $regPdtoImpresion->diseno.' | '.$regPdtoImpresion->impresion; }
+  
+    $nProductos = $item; }
+
+  // Catalogo de tipos de empaque
+  $vntsEmpaqueSelect = $link->query("
+    SELECT * FROM vntsempaque
+     WHERE sttempaque = '1'
+  ORDER BY empaque");
+
+  if ($vntsEmpaqueSelect->num_rows > 0)
+  { $item = 0;
+
+    while ($regVntsEmpaque = $vntsEmpaqueSelect->fetch_object())
+    { $item++;
+
+      $vntsEntrega_idempaque[$item] = $regVntsEmpaque->idempaque;
+      $vntsEntrega_empaque[$item] = $regVntsEmpaque->empaque;
+      $vntsEntrega_cdgempaque[$item] = $regVntsEmpaque->cdgempaque; 
+
+      $vntsEntregas_empaques[$regVntsEmpaque->cdgempaque] = $regVntsEmpaque->empaque; }
+
+    $nEmpaques = $item;
+  }
+
+  class PDF extends FPDF
+  { function Header()
+    { global $prodEntregas_sucursal;
+      global $prodEntregas_producto;
+
+      if ($_SESSION['usuario'] == '')
+      { $_SESSION['usuario'] = 'Invitado'; }
+
+      if (file_exists('../../img_sistema/logo.jpg')==true)
+      { $this->Image('../../img_sistema/logo.jpg',10,7,0,10); }      
+
+      $this->SetFillColor(255,153,0);
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Documento'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode('Listado de entregas'),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Sucursal'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($prodEntregas_sucursal),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Producto'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($prodEntregas_producto),0,1,'L');
+
+      $this->SetFont('Arial','B',8);
+      $this->Cell(125,4,utf8_decode('Rango de fechas'),0,0,'R');
+      $this->Cell(0.5,4,'',0,0,'R',true);
+      $this->SetFont('Arial','I',8);
+      $this->Cell(75,4,utf8_decode($_GET['dsdfecha'].' - '.$_GET['hstfecha']),0,1,'L');      
+
+      $this->Ln(4.15); }
+  }
+
+  $pdf=new PDF('P','mm','letter');
+  $pdf->AliasNbPages();
+  $pdf->SetDisplayMode(real, continuous);    
+  $pdf->AddPage();
+  $pdf->SetFillColor(180,180,180);
+
+  if ($prodEntregas_cdgsucursal == '')
+  { if ($prodEntregas_cdgproducto == '')
+    { $vntsOCLoteSelect_fechas = $link->query("
+        SELECT vntsoclote.fchembarque
+          FROM vntsoclote
+        WHERE (vntsoclote.fchembarque BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."') AND
+               vntsoclote.sttlote = '1'
+      GROUP BY vntsoclote.fchembarque"); 
+      
+      if ($vntsOCLoteSelect_fechas->num_rows > 0)
+      { while($regVntsOCLote_fecha = $vntsOCLoteSelect_fechas->fetch_object())
+        { $pdf->SetFont('arial','',12);
+          $pdf->Cell(20,4,$regVntsOCLote_fecha->fchembarque,0,1,'L'); 
+
+          $vntsOCLoteSelect_sucursales = $link->query("
+            SELECT vntsoc.cdgsucursal
+              FROM vntsoc,
+                   vntsoclote
+             WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+                   vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                   vntsoclote.sttlote = '1' 
+          GROUP BY vntsoc.cdgsucursal");
+
+          if ($vntsOCLoteSelect_sucursales->num_rows > 0)
+          { while($regVntsOCLote_sucursal = $vntsOCLoteSelect_sucursales->fetch_object())
+            { $pdf->SetFont('arial','',8);
+              $pdf->Cell(20,4,'Sucursal '.$vntsEntregas_sucursales[$regVntsOCLote_sucursal->cdgsucursal],0,1,'L');
+
+              $vntsOCLoteSelect = $link->query("
+                SELECT vntsoc.oc,
+                       vntsoclote.idlote,
+                       vntsoclote.cdgproducto,
+                   SUM(vntsoclote.cantidad-vntsoclote.surtido) AS cantidad,
+                       vntsoclote.cdgempaque,
+                       vntsoc.fchrecepcion,
+              DATEDIFF(vntsoclote.fchembarque, vntsoc.fchrecepcion) AS fchplazo
+                  FROM vntsoc,
+                       vntsoclote
+                 WHERE vntsoc.cdgsucursal = '".$regVntsOCLote_sucursal->cdgsucursal."' AND
+                       vntsoc.cdgoc = vntsoclote.cdgoc AND
+                       vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                       vntsoclote.sttlote = '1' 
+              GROUP BY vntsoc.oc,
+                       vntsoclote.idlote");
+
+              if ($vntsOCLoteSelect->num_rows > 0)
+              { $pdf->SetFont('arial','B',8);
+
+                $pdf->Cell(4,4,'',0,0,'C');
+                $pdf->Cell(28,4,'O.C.',1,0,'L',true);
+                $pdf->Cell(25,4,'Recepcion',1,0,'L',true);
+                $pdf->Cell(85,4,'Producto',1,0,'L',true);
+                $pdf->Cell(20,4,'Cantidad',1,0,'L',true);
+                $pdf->Cell(30,4,'Empaque',1,1,'L',true);
+                
+                $cantidadBloque = 0;
+                while($regVntsOCLote = $vntsOCLoteSelect->fetch_object())
+                { $pdf->SetFont('arial','B',5); 
+                  $pdf->Cell(4,4,'',0,0,'R');
+
+                  $pdf->SetFont('arial','',8); 
+                  $pdf->Cell(28,4,$regVntsOCLote->oc.'-'.$regVntsOCLote->idlote,1,0,'R');
+                  $pdf->Cell(25,4,$regVntsOCLote->fchrecepcion.'  ('.$regVntsOCLote->fchplazo.')',1,0,'L'); 
+                  $pdf->Cell(85,4,$vntsEntregas_productos[$regVntsOCLote->cdgproducto],1,0,'L');
+                  $pdf->Cell(20,4,number_format($regVntsOCLote->cantidad,3),1,0,'R'); 
+                  $pdf->Cell(30,4,$vntsEntregas_empaques[$regVntsOCLote->cdgempaque],1,1,'L');
+                  
+                  $vntsEntrega_suma[$regVntsOCLote->cdgempaque][$regVntsOCLote->cdgproducto] += $regVntsOCLote->cantidad;
+                  
+                  $cantidadBloque += $regVntsOCLote->cantidad; } 
+
+                $pdf->SetFont('arial','B',8);
+
+                $pdf->Cell(142,4,'',0,0,'L');
+                $pdf->Cell(20,4,number_format($cantidadBloque,3),1,1,'R',true);
+                
+                $pdf->Ln(2); }
+            }            
+          }          
+        }
+
+        // Aquí van los totales
+        for ($item = 1; $item <= $nEmpaques; $item++)
+        { $cantidadEmpaque = 0;
+
+          $pdf->Cell(105,4,$vntsEntrega_empaque[$item],1,1,'R',true); 
+          for ($subItem = 1; $subItem <= $nProductos; $subItem++)
+          { if ($vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$vntsEntrega_cdgproducto[$subItem]] > 0) 
+            { $pdf->SetFont('arial','',8);
+              $pdf->Cell(85,4,$vntsEntrega_producto[$subItem],1,0,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(20,4,number_format($vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$vntsEntrega_cdgproducto[$subItem]],3),1,1,'R');
+
+              $cantidadEmpaque += $vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$vntsEntrega_cdgproducto[$subItem]];
+            }
+          }
+
+          $pdf->SetFont('arial','',8);
+          $pdf->Cell(85,4,'',0,0,'L');
+
+          $pdf->SetFont('arial','B',8);
+          $pdf->Cell(20,4,number_format($cantidadEmpaque,3),1,1,'R');
+
+          $pdf->Ln(2); }        
+      } else
+      { $pdf->Cell(20,4,utf8_decode('No se encontraron coincidencias con los parámetros ingresados. (AS/AP)'),0,1); }
+    } else
+    { $vntsOCLoteSelect_fechas = $link->query("
+        SELECT vntsoclote.fchembarque
+          FROM vntsoclote
+         WHERE vntsoclote.cdgproducto = '".$prodEntregas_cdgproducto."' AND
+              (vntsoclote.fchembarque BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."') AND
+               vntsoclote.sttlote = '1'
+      GROUP BY vntsoclote.fchembarque"); 
+      
+      if ($vntsOCLoteSelect_fechas->num_rows > 0)
+      { while($regVntsOCLote_fecha = $vntsOCLoteSelect_fechas->fetch_object())
+        { $pdf->SetFont('arial','',12);
+          $pdf->Cell(20,4,$regVntsOCLote_fecha->fchembarque,0,1,'L'); 
+
+          $vntsOCLoteSelect_sucursales = $link->query("
+            SELECT vntsoc.cdgsucursal
+              FROM vntsoc,
+                   vntsoclote
+             WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+                   vntsoclote.cdgproducto = '".$prodEntregas_cdgproducto."' AND
+                   vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                   vntsoclote.sttlote = '1' 
+          GROUP BY vntsoc.cdgsucursal");
+
+          if ($vntsOCLoteSelect_sucursales->num_rows > 0)
+          { while($regVntsOCLote_sucursal = $vntsOCLoteSelect_sucursales->fetch_object())
+            { $pdf->SetFont('arial','',8);
+              $pdf->Cell(20,4,'Sucursal '.$vntsEntregas_sucursales[$regVntsOCLote_sucursal->cdgsucursal],0,1,'L');
+
+              $vntsOCLoteSelect = $link->query("
+                SELECT vntsoc.oc,
+                       vntsoclote.idlote,
+                       vntsoclote.cdgproducto,
+                   SUM(vntsoclote.cantidad-vntsoclote.surtido) AS cantidad,
+                       vntsoclote.referencia,
+                       vntsoclote.cdgempaque,
+                       vntsoc.fchrecepcion,
+              DATEDIFF(vntsoclote.fchembarque, vntsoc.fchrecepcion) AS fchplazo
+                  FROM vntsoc,
+                       vntsoclote
+                 WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+                       vntsoc.cdgsucursal = '".$regVntsOCLote_sucursal->cdgsucursal."' AND
+                       vntsoclote.cdgproducto = '".$prodEntregas_cdgproducto."' AND
+                       vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                       vntsoclote.sttlote = '1' 
+              GROUP BY vntsoc.oc,
+                       vntsoclote.idlote");
+
+              if ($vntsOCLoteSelect->num_rows > 0)
+              { $pdf->SetFont('arial','B',8);
+
+                $pdf->Cell(4,4,'',0,0,'C');
+                $pdf->Cell(28,4,'O.C.',1,0,'L',true);
+                $pdf->Cell(25,4,'Recepcion',1,0,'L',true);                
+                $pdf->Cell(20,4,'Cantidad',1,0,'L',true);
+                $pdf->Cell(30,4,'Empaque',1,1,'L',true);
+                
+                $cantidadBloque = 0;
+                while($regVntsOCLote = $vntsOCLoteSelect->fetch_object())
+                { $pdf->SetFont('arial','B',5); 
+                  $pdf->Cell(4,4,'',0,0,'R');
+
+                  $pdf->SetFont('arial','',8); 
+                  $pdf->Cell(28,4,$regVntsOCLote->oc.'-'.$regVntsOCLote->idlote,1,0,'R');
+                  $pdf->Cell(25,4,$regVntsOCLote->fchrecepcion.'  ('.$regVntsOCLote->fchplazo.')',1,0,'L');                   
+                  $pdf->Cell(20,4,number_format($regVntsOCLote->cantidad,3),1,0,'R'); 
+                  $pdf->Cell(30,4,$vntsEntregas_empaques[$regVntsOCLote->cdgempaque],1,1,'L');                   
+                  
+                  $vntsEntrega_suma[$regVntsOCLote->cdgempaque][$regVntsOCLote->cdgproducto] += $regVntsOCLote->cantidad;
+                  
+                  $cantidadBloque += $regVntsOCLote->cantidad; } 
+
+                $pdf->SetFont('arial','B',8);
+
+                $pdf->Cell(57,4,'',0,0,'L');
+                $pdf->Cell(20,4,number_format($cantidadBloque,3),1,1,'R',true);
+                
+                $pdf->Ln(2); }
+            }
+          }
+        }
+
+        // Aquí van los totales
+        for ($item = 1; $item <= $nEmpaques; $item++)
+        { $pdf->SetFont('arial','B',8);
+          $pdf->Cell(87,4,$vntsEntrega_empaque[$item],1,0,'R',true); 
+          
+          $pdf->SetFont('arial','B',8);
+          $pdf->Cell(20,4,number_format($vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$prodEntregas_cdgproducto],3),1,1,'R'); }
+      } else
+      { $pdf->Cell(20,4,utf8_decode('No se encontraron coincidencias con los parámetros ingresados. (AS/OP)'),0,1); }
+    }
+  } else
+  { if ($prodEntregas_cdgproducto == '')
+    { $vntsOCLoteSelect_fechas = $link->query("
+        SELECT vntsoclote.fchembarque
+          FROM vntsoc,
+               vntsoclote
+         WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+               vntsoc.cdgsucursal = '".$prodEntregas_cdgsucursal."' AND
+              (vntsoclote.fchembarque BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."') AND
+               vntsoclote.sttlote = '1'
+      GROUP BY vntsoclote.fchembarque");
+
+      if ($vntsOCLoteSelect_fechas->num_rows > 0)
+      { while($regVntsOCLote_fecha = $vntsOCLoteSelect_fechas->fetch_object())
+        { $pdf->SetFont('arial','',12);
+          $pdf->Cell(20,4,$regVntsOCLote_fecha->fchembarque,0,1,'L'); 
+
+          $vntsOCLoteSelect_productos = $link->query("
+            SELECT vntsoclote.cdgproducto
+              FROM vntsoc,
+                   vntsoclote
+             WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+                   vntsoc.cdgsucursal = '".$prodEntregas_cdgsucursal."' AND
+                   vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                   vntsoclote.sttlote = '1' 
+          GROUP BY vntsoclote.cdgproducto");
+
+          if ($vntsOCLoteSelect_productos->num_rows > 0)
+          { while($regVntsOCLote_producto = $vntsOCLoteSelect_productos->fetch_object())
+            { $pdf->SetFont('arial','',8);
+              $pdf->Cell(20,4,'Producto '.$vntsEntregas_productos[$regVntsOCLote_producto->cdgproducto],0,1,'L');
+
+              $vntsOCLoteSelect = $link->query("
+                SELECT vntsoc.oc,
+                       vntsoclote.idlote,
+                       vntsoc.cdgsucursal,
+                   SUM(vntsoclote.cantidad-vntsoclote.surtido) AS cantidad,
+                       vntsoclote.cdgempaque,
+                       vntsoc.fchrecepcion,
+              DATEDIFF(vntsoclote.fchembarque, vntsoc.fchrecepcion) AS fchplazo
+                  FROM vntsoc,
+                       vntsoclote
+                 WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+                       vntsoc.cdgsucursal = '".$prodEntregas_cdgsucursal."' AND
+                       vntsoclote.cdgproducto = '".$regVntsOCLote_producto->cdgproducto."' AND
+                       vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                       vntsoclote.sttlote = '1' 
+              GROUP BY vntsoc.oc,
+                       vntsoclote.idlote");
+
+              if ($vntsOCLoteSelect->num_rows > 0)
+              { $pdf->SetFont('arial','B',8);
+
+                $pdf->Cell(4,4,'',0,0,'C');
+                $pdf->Cell(28,4,'O.C.',1,0,'L',true);
+                $pdf->Cell(25,4,'Recepcion',1,0,'L',true);                
+                $pdf->Cell(20,4,'Cantidad',1,0,'L',true);
+                $pdf->Cell(30,4,'Empaque',1,1,'L',true);
+                
+                $cantidadBloque = 0;
+                while($regVntsOCLote = $vntsOCLoteSelect->fetch_object())
+                { $pdf->SetFont('arial','B',5); 
+                  $pdf->Cell(4,4,'',0,0,'R');
+
+                  $pdf->SetFont('arial','',8); 
+                  $pdf->Cell(28,4,$regVntsOCLote->oc.'-'.$regVntsOCLote->idlote,1,0,'R');
+                  $pdf->Cell(25,4,$regVntsOCLote->fchrecepcion.'  ('.$regVntsOCLote->fchplazo.')',1,0,'L');                   
+                  $pdf->Cell(20,4,number_format($regVntsOCLote->cantidad,3),1,0,'R'); 
+                  $pdf->Cell(30,4,$vntsEntregas_empaques[$regVntsOCLote->cdgempaque],1,1,'L');
+                  
+                  $vntsEntrega_suma[$regVntsOCLote->cdgempaque][$regVntsOCLote_producto->cdgproducto] += $regVntsOCLote->cantidad;
+                  
+                  $cantidadBloque += $regVntsOCLote->cantidad; } 
+
+                $pdf->SetFont('arial','B',8);
+
+                $pdf->Cell(57,4,'',0,0,'L');
+                $pdf->Cell(20,4,number_format($cantidadBloque,3),1,1,'R',true);
+                
+                $pdf->Ln(2); }
+            }
+          }
+        }
+
+        // Aquí van los totales
+        for ($item = 1; $item <= $nEmpaques; $item++)
+        { $cantidadEmpaque = 0;
+
+          $pdf->Cell(105,4,$vntsEntrega_empaque[$item],1,1,'R',true); 
+          for ($subItem = 1; $subItem <= $nProductos; $subItem++)
+          { if ($vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$vntsEntrega_cdgproducto[$subItem]] > 0) 
+            { $pdf->SetFont('arial','',8);
+              $pdf->Cell(85,4,$vntsEntrega_producto[$subItem],1,0,'L');
+
+              $pdf->SetFont('arial','B',8);
+              $pdf->Cell(20,4,number_format($vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$vntsEntrega_cdgproducto[$subItem]],3),1,1,'R');
+
+              $cantidadEmpaque += $vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$vntsEntrega_cdgproducto[$subItem]];
+            }
+          }
+
+          $pdf->SetFont('arial','',8);
+          $pdf->Cell(85,4,'',0,0,'L');
+
+          $pdf->SetFont('arial','B',8);
+          $pdf->Cell(20,4,number_format($cantidadEmpaque,3),1,1,'R');
+
+          $pdf->Ln(2); }
+      } else
+      { $pdf->Cell(20,4,utf8_decode('No se encontraron coincidencias con los parámetros ingresados. (OS/AP)'),0,1); }    
+    } else
+    { $vntsOCLoteSelect_fechas = $link->query("
+        SELECT vntsoclote.fchembarque
+          FROM vntsoc,
+               vntsoclote
+         WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+               vntsoc.cdgsucursal = '".$prodEntregas_cdgsucursal."' AND
+               vntsoclote.cdgproducto = '".$prodEntregas_cdgproducto."' AND
+              (vntsoclote.fchembarque BETWEEN '".$_GET['dsdfecha']."' AND '".$_GET['hstfecha']."') AND
+               vntsoclote.sttlote = '1'
+      GROUP BY vntsoclote.fchembarque");
+
+      if ($vntsOCLoteSelect_fechas->num_rows > 0)
+      { while($regVntsOCLote_fecha = $vntsOCLoteSelect_fechas->fetch_object())
+        { $pdf->SetFont('arial','',12);
+          $pdf->Cell(20,4,$regVntsOCLote_fecha->fchembarque,0,1,'L'); 
+          $pdf->Ln(1);
+
+          $vntsOCLoteSelect = $link->query("
+            SELECT vntsoc.oc,
+                   vntsoclote.idlote,
+                   vntsoc.cdgsucursal,
+               SUM(vntsoclote.cantidad-vntsoclote.surtido) AS cantidad,
+                   vntsoclote.cdgempaque,
+                   vntsoc.fchrecepcion,
+          DATEDIFF(vntsoclote.fchembarque, vntsoc.fchrecepcion) AS fchplazo
+              FROM vntsoc,
+                   vntsoclote
+             WHERE vntsoc.cdgoc = vntsoclote.cdgoc AND
+                   vntsoc.cdgsucursal = '".$prodEntregas_cdgsucursal."' AND
+                   vntsoclote.cdgproducto = '".$prodEntregas_cdgproducto."' AND
+                   vntsoclote.fchembarque = '".$regVntsOCLote_fecha->fchembarque."' AND
+                   vntsoclote.sttlote = '1' 
+          GROUP BY vntsoc.oc,
+                   vntsoclote.idlote");
+
+          if ($vntsOCLoteSelect->num_rows > 0)
+          { $pdf->SetFont('arial','',8);
+
+            $pdf->Cell(4,4,'',0,0,'C');
+            $pdf->Cell(28,4,'O.C.',1,0,'L',true);
+            $pdf->Cell(25,4,'Recepcion',1,0,'L',true);                
+            $pdf->Cell(20,4,'Cantidad',1,0,'L',true);
+            $pdf->Cell(30,4,'Empaque',1,1,'L',true);
+            
+            $cantidadBloque = 0;
+            while($regVntsOCLote = $vntsOCLoteSelect->fetch_object())
+            { $pdf->SetFont('arial','B',5); 
+              $pdf->Cell(4,4,'',0,0,'R');
+
+              $pdf->SetFont('arial','',8); 
+              $pdf->Cell(28,4,$regVntsOCLote->oc.'-'.$regVntsOCLote->idlote,1,0,'R');
+              $pdf->Cell(25,4,$regVntsOCLote->fchrecepcion.'  ('.$regVntsOCLote->fchplazo.')',1,0,'L');
+              $pdf->Cell(20,4,number_format($regVntsOCLote->cantidad,3),1,0,'R'); 
+              $pdf->Cell(30,4,$vntsEntregas_empaques[$regVntsOCLote->cdgempaque],1,1,'L');
+              
+              $vntsEntrega_suma[$regVntsOCLote->cdgempaque][$prodEntregas_cdgproducto] += $regVntsOCLote->cantidad;
+              
+              $cantidadBloque += $regVntsOCLote->cantidad; } 
+
+            $pdf->SetFont('arial','B',8);
+
+            $pdf->Cell(57,4,'',0,0,'L');
+            $pdf->Cell(20,4,number_format($cantidadBloque,3),1,1,'R',true);
+            
+            $pdf->Ln(2); }
+        }
+
+        // Aquí van los totales
+        for ($item = 1; $item <= $nEmpaques; $item++)
+        { $pdf->SetFont('arial','B',8);
+          $pdf->Cell(87,4,$vntsEntrega_empaque[$item],1,0,'R',true); 
+          
+          $pdf->SetFont('arial','B',8);
+          $pdf->Cell(20,4,number_format($vntsEntrega_suma[$vntsEntrega_cdgempaque[$item]][$prodEntregas_cdgproducto],3),1,1,'R'); }
+      } else
+      { $pdf->Cell(20,4,utf8_decode('No se encontraron coincidencias con los parámetros ingresados. (OS/OP)'),0,1); }  
+    }    
+  }
+
+  $pdf->Output('Calendario de Entregas del '.$_GET['dsdfecha'].' al '.$_GET['hstfecha'].'.pdf', 'D');
+?>

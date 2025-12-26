@@ -1,0 +1,311 @@
+<?php
+  include '../../fpdf/fpdf.php';
+  include '../../datos/mysql.php';
+  $link_mysqli = conectar();
+
+  if ($_GET['cdgembarque'])
+  { $_SESSION['cdgembarque'] = $_GET['cdgembarque'];
+
+    $vntsEmbarqueSelect = $link_mysqli->query("
+      SELECT vntsembarque.cdgembarque,
+             vntsembarque.referencia,
+             pdtoimpresion.impresion,
+             vntsembarque.cdgempaque,
+             vntsembarque.fchembarque,
+             vntssucursal.sucursal
+        FROM vntsembarque,
+             vntssucursal,
+             pdtoimpresion
+       WHERE vntsembarque.cdgembarque = '".$_SESSION['cdgembarque']."' AND
+             vntsembarque.cdgsucursal = vntssucursal.cdgsucursal AND
+             vntsembarque.cdgproducto = pdtoimpresion.cdgimpresion");
+
+    if ($vntsEmbarqueSelect->num_rows > 0)
+    { $regVntsEmbarque = $vntsEmbarqueSelect->fetch_object();
+
+      $vntsEmbarque_cdgembarque = $regVntsEmbarque->cdgembarque;
+      $vntsEmbarque_referencia = $regVntsEmbarque->referencia;
+      $vntsEmbarque_producto = $regVntsEmbarque->impresion;
+      $vntsEmbarque_cdgempaque = $regVntsEmbarque->cdgempaque;
+      $vntsEmbarque_fchembarque = $regVntsEmbarque->fchembarque;
+      $vntsEmbarque_sucursal = $regVntsEmbarque->sucursal;
+
+      class PDF extends FPDF
+      { function Header()
+        { global $vntsEmbarque_cdgembarque;
+          global $vntsEmbarque_referencia;
+          global $vntsEmbarque_producto;
+          global $vntsEmbarque_fchembarque;
+          global $vntsEmbarque_sucursal;
+
+          $this->SetFont('Arial','B',8);
+          $this->SetFillColor(255,153,0);
+
+          if (file_exists('../../img_sistema/logonew.jpg')==true)
+          { $this->Image('../../img_sistema/logonew.jpg',10,0,0,32); }
+
+          $this->SetFont('Arial','B',8);
+          $this->Cell(125,4,utf8_decode('Documento'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','I',8);
+          $this->Cell(75,4,utf8_decode('Lista de embarque'),0,1,'L');
+
+          $this->SetFont('Arial','B',8);
+          $this->Cell(125,4,utf8_decode('Código'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','I',8);
+          $this->Cell(75,4,utf8_decode('EM-FR-01'),0,1,'L');
+
+          $this->SetFont('Arial','B',8);
+          $this->Cell(125,4,utf8_decode('Versión'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','I',8);
+          $this->Cell(75,4,utf8_decode('1.0'),0,1,'L');
+
+          $this->SetFont('Arial','B',8);
+          $this->Cell(125,4,utf8_decode('Revisión'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','I',8);
+          $this->Cell(75,4,utf8_decode('Agosto 27, 2014'),0,1,'L');
+
+          $this->SetFont('Arial','B',8);
+          $this->Cell(125,4,utf8_decode('Responsable'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','I',8);
+          $this->Cell(75,4,utf8_decode('Jefe de Logística y Atención a Clientes'),0,1,'L'); 
+
+          $this->Ln(4);
+          $this->SetFillColor(180,180,180);
+
+          $this->SetFont('Arial','I',8);
+          $this->Cell(40,4,utf8_decode('Embarque'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','B',8);
+          $this->Cell(40,4,$vntsEmbarque_cdgembarque,0,1,'L');
+
+          $this->SetFont('Arial','I',8);
+          $this->Cell(40,4,utf8_decode('Fecha'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','B',8);
+          $this->Cell(60,4,$vntsEmbarque_fchembarque,0,1,'L');
+
+          $this->SetFont('Arial','I',8);
+          $this->Cell(40,4,utf8_decode('Producto'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','B',8);
+          $this->Cell(60,4,$vntsEmbarque_producto,0,1,'L');
+
+          $this->SetFont('Arial','I',8);
+          $this->Cell(40,4,utf8_decode('Referencia'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);
+          $this->SetFont('Arial','B',8);
+          $this->Cell(60,4,$vntsEmbarque_referencia,0,1,'L');
+
+          $this->SetFont('Arial','I',8);
+          $this->Cell(40,4,utf8_decode('Destino'),0,0,'R');
+          $this->Cell(0.5,4,'',0,0,'R',true);  
+          $this->SetFont('Arial','B',8);
+          $this->Cell(60,4,$vntsEmbarque_sucursal,0,1,'L');
+
+          $this->Ln(4);
+        }
+      }
+
+      $pdf = new PDF('P','mm','letter');
+      $pdf->AliasNbPages();
+      $pdf->SetDisplayMode(real, continuous);
+      $pdf->AddPage();
+
+      if ($vntsEmbarque_cdgempaque == 'C')
+      { $pdf->SetFillColor(180,180,180);
+        $pdf->SetFont('arial','B',8);
+
+        $pdf->Cell(4,4,'',0,0,'L');
+        $pdf->Cell(24,4,'Empaque',0,0,'C',true);
+        $pdf->Cell(24,4,'Millares',0,0,'C',true);
+        $pdf->Cell(24,4,'Kilos',0,1,'C',true);
+
+        $alptEmpaqueSelect = $link_mysqli->query("
+          SELECT alptempaque.cdgempaque,
+                 alptempaque.tpoempaque,
+                 alptempaque.noempaque,
+                 alptempaque.peso,
+                 pdtoimpresion.impresion,
+             SUM(prodpaquete.cantidad) AS cantidad
+            FROM alptempaque,
+                 alptempaquep,
+                 prodpaquete,
+                 pdtoimpresion
+          WHERE (alptempaque.cdgembarque = '".$_GET['cdgembarque']."' AND
+                 alptempaque.cdgempaque = alptempaquep.cdgempaque AND
+          SUBSTR(alptempaquep.cdgpaquete,1,12) = prodpaquete.cdgpaquete AND
+                 prodpaquete.cdgproducto = pdtoimpresion.cdgimpresion)
+        GROUP BY alptempaque.cdgempaque,
+                 alptempaque.tpoempaque,
+                 alptempaque.noempaque,
+                 alptempaque.peso,
+                 pdtoimpresion.impresion
+        ORDER BY alptempaque.noempaque");
+
+        while ($regAlptEmpaque = $alptEmpaqueSelect->fetch_object())
+        { $item++;
+          $alptEmpaque_cdgempaque = $regAlptEmpaque->cdgempaque;
+          $alptEmpaque_tpoempaque = $regAlptEmpaque->tpoempaque;
+          $alptEmpaque_noempaque = $regAlptEmpaque->noempaque;
+          $alptEmpaque_pesobruto = $regAlptEmpaque->peso;
+          $alptEmpaque_cantidad = number_format($regAlptEmpaque->cantidad,3);
+          $alptEmpaque_producto = $regAlptEmpaque->impresion;
+   
+          $alptEmpaque_sumapeso += $regAlptEmpaque->peso;
+          $alptEmpaque_sumacantidad += number_format($regAlptEmpaque->cantidad,3);
+
+          $pdf->SetFont('arial','',6);
+          $pdf->Cell(4,4,$item,0,0,'R');
+          
+          $pdf->SetFont('arial','B',10);
+          $pdf->Cell(24,4,$alptEmpaque_tpoempaque.$alptEmpaque_noempaque,1,0,'R');
+
+          $pdf->SetFont('arial','',10);
+          $pdf->Cell(24,4,number_format($alptEmpaque_cantidad,3),1,0,'R');
+          $pdf->Cell(24,4,number_format($alptEmpaque_pesobruto,3),1,1,'R'); }
+
+        $pdf->SetFont('arial','B',10);
+        $pdf->Cell(4,5,'',0,0,'R');
+        $pdf->Cell(24,5,'',0,0,'R');
+        $pdf->Cell(24,5,number_format($alptEmpaque_sumacantidad,3),1,0,'R');
+        $pdf->Cell(24,5,number_format($alptEmpaque_sumapeso,3),1,1,'R');
+      } else
+      { $alptEmpaqueSelect = $link_mysqli->query("
+           SELECT alptempaque.cdgempaque,
+                  alptempaque.tpoempaque,
+                  alptempaque.noempaque,
+                  alptempaque.peso AS pesobruto,
+              SUM(prodrollo.longitud/pdtodiseno.alto) AS cantidad,
+              SUM(prodrollo.longitud) AS longitud,
+              SUM(prodrollo.peso) AS peso
+             FROM alptempaque,
+                  alptempaquer,
+                  prodrollo,
+                  pdtodiseno,
+                  pdtoimpresion
+           WHERE (alptempaque.cdgembarque = '".$_GET['cdgembarque']."' AND
+                  alptempaque.cdgempaque = alptempaquer.cdgempaque AND
+           SUBSTR(alptempaquer.cdgrollo,1,12) = prodrollo.cdgrollo AND
+                  prodrollo.cdgproducto = pdtoimpresion.cdgimpresion AND
+                  pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno)
+         GROUP BY alptempaque.cdgempaque,
+                  alptempaque.tpoempaque,
+                  alptempaque.noempaque,
+                  alptempaque.peso
+         ORDER BY alptempaque.noempaque");
+
+      if ($alptEmpaqueSelect->num_rows > 0)
+      { $pdf->SetFont('arial','B',8);
+        $pdf->SetFillColor(180,180,180);
+            
+        $pdf->Cell(4,4,'',0,0,'L');
+        $pdf->Cell(24,4,'Empaque',0,0,'C',true);
+        $pdf->Cell(24,4,'Millares',0,0,'C',true);
+        $pdf->Cell(24,4,'Kilos',0,0,'C',true);
+        $pdf->Cell(24,4,'Metros',0,0,'C',true);
+
+        $pdf->Cell(24,4,'Bobina',0,0,'C',true);
+        $pdf->Cell(24,4,'Metros',0,0,'C',true);
+        $pdf->Cell(24,4,'Kilos',0,0,'C',true);
+        $pdf->Cell(24,4,'Millares',0,1,'C',true);
+
+        while ($regAlptEmpaque = $alptEmpaqueSelect->fetch_object())
+        { $item++;
+          
+          $alptEmpaque_cdgempaque = $regAlptEmpaque->cdgempaque;
+          $alptEmpaque_tpoempaque = $regAlptEmpaque->tpoempaque;
+          $alptEmpaque_noempaque = $regAlptEmpaque->noempaque;
+
+          $alptEmpaque_sumalongitud = $regAlptEmpaque->longitud;
+          $alptEmpaque_sumapeso = $regAlptEmpaque->pesobruto;
+          $alptEmpaque_sumacantidad = $regAlptEmpaque->cantidad;
+
+          $alptEmpaqueRSelect = $link_mysqli->query("
+            SELECT alptempaquer.nocontrol, 
+                   alptempaquer.cdgrollo,
+                  (prodrollo.longitud/pdtodiseno.alto) AS cantidad,
+                   prodrollo.longitud, 
+                   prodrollo.peso
+              FROM alptempaquer, 
+                   prodrollo, 
+                   pdtodiseno,
+                   pdtoimpresion
+             WHERE alptempaquer.cdgempaque = '".$alptEmpaque_cdgempaque."' AND
+            SUBSTR(alptempaquer.cdgrollo,1,12) = prodrollo.cdgrollo AND
+                   alptempaquer.cdgproducto = pdtoimpresion.cdgimpresion AND
+                   pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno
+          ORDER BY alptempaquer.nocontrol");
+
+          $subItem = 1;
+          while ($regAlptEmpaqueR = $alptEmpaqueRSelect->fetch_object())
+          { $alptEmpaque_nocontrol[$subItem] = $regAlptEmpaqueR->nocontrol;
+            $alptEmpaque_longitud[$subItem] = $regAlptEmpaqueR->longitud;
+            $alptEmpaque_peso[$subItem] = $regAlptEmpaqueR->peso;
+            $alptEmpaque_cantidad[$subItem] = number_format($regAlptEmpaqueR->cantidad,3);
+
+            $subItem++; }       
+
+          $nRollos = $alptEmpaqueRSelect->num_rows;
+          
+          $pdf->SetFont('arial','',6);
+          $pdf->Cell(4,($nRollos*4),$item,0,0,'R');
+          
+          $pdf->SetFont('arial','B',20);
+          $pdf->Cell(24,($nRollos*4),$alptEmpaque_tpoempaque.$alptEmpaque_noempaque,1,0,'R');
+
+          $pdf->SetFont('arial','B',10);
+          $pdf->Cell(24,($nRollos*4),number_format($alptEmpaque_sumacantidad,3),1,0,'R');
+          $pdf->Cell(24,($nRollos*4),number_format($alptEmpaque_sumapeso,3),1,0,'R');
+          $pdf->Cell(24,($nRollos*4),number_format($alptEmpaque_sumalongitud,2),1,0,'R');
+
+          $posicionX = $pdf->GetX();
+          $pdf->SetFont('arial','',9);
+          for ($subItem = 1; $subItem <= $nRollos; $subItem++)
+          { if ($pdf->GetX() == $posicionX)
+            { $pdf->Cell(24,4,'R'.$alptEmpaque_nocontrol[$subItem],1,0,'R'); 
+              $pdf->Cell(24,4,number_format($alptEmpaque_longitud[$subItem],2),1,0,'R'); 
+              $pdf->Cell(24,4,number_format($alptEmpaque_peso[$subItem],3),1,0,'R'); 
+              $pdf->Cell(24,4,number_format($alptEmpaque_cantidad[$subItem],3),1,0,'R'); 
+            } else 
+            { $pdf->Cell(($posicionX-10),4,'',0,0,'R');
+              $pdf->Cell(24,4,'R'.$alptEmpaque_nocontrol[$subItem],1,0,'R');
+              $pdf->Cell(24,4,number_format($alptEmpaque_longitud[$subItem],2),1,0,'R'); 
+              $pdf->Cell(24,4,number_format($alptEmpaque_peso[$subItem],3),1,0,'R'); 
+              $pdf->Cell(24,4,number_format($alptEmpaque_cantidad[$subItem],3),1,0,'R'); } 
+
+            $alptEmpaque_cantidadsuma += $alptEmpaque_cantidad[$subItem];
+
+            $pdf->Ln(); }
+
+            $alptEmpaque_pesosuma += $alptEmpaque_sumapeso;
+
+          $nRollos = 0; }
+
+          $pdf->SetFont('arial','B',10);
+          $pdf->Cell(4,5,'',0,0,'R');
+          $pdf->Cell(24,5,'',0,0,'R');
+          $pdf->Cell(24,5,number_format($alptEmpaque_cantidadsuma,3),1,0,'R');
+          $pdf->Cell(24,5,number_format($alptEmpaque_pesosuma,3),1,1,'R'); 
+        }
+      }
+              
+      $pdf->Output('Lista de embarque '.$vntsEmbarque_cdgembarque.' '.$vntsEmbarque_sucursal.'.pdf', 'D');
+    }
+  } else
+  { echo '<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Lista de embarque</title>
+    <link rel="stylesheet" type="text/css" href="/css/2014.css" media="all">
+  </head>
+  <body>
+    <div id="contenedor"><h1>Lista de embarque no encontrada );</h1></div>
+  </body>
+</html>'; }
+?>

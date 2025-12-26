@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es">
+  <head>
+    <link rel="stylesheet" href="css/global.css" type="text/css" />
+    <link rel="stylesheet" href="css/menu.css" type="text/css" />
+    <script type="text/javascript">
+      <!--
+      var time = 3000;
+      var numofitems = 9;
+
+      var d=new Date();
+      var mes=new Array("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"); 
+      var dia=new Array("Domingo","Lunes","Martes","Miercoles","Jueves","Viernes","Sabado");
+      var hoy = dia[d.getDay()] + ", " + d.getDate() + " de " + mes[d.getMonth()] + " " + d.getFullYear();
+
+      //menu constructor
+      function menu(allitems,thisitem,startstate){
+        callname= "gl"+thisitem;
+        divname="subglobal"+thisitem;  
+        this.numberofmenuitems = allitems;
+        this.caller = document.getElementById(callname);
+        this.thediv = document.getElementById(divname);
+        this.thediv.style.visibility = startstate; }
+
+      //menu methods
+      function ehandler(event,theobj){
+        for (var i=1; i<= theobj.numberofmenuitems; i++){
+          var shutdiv = eval( "menuitem"+i+".thediv");
+          shutdiv.style.visibility="hidden"; }
+
+        theobj.thediv.style.visibility="visible"; }
+
+      function closesubnav(event){
+        if ((event.clientY <5)||(event.clientY >60)){
+          for (var i=1; i<= numofitems; i++){
+            var shutdiv = eval('menuitem'+i+'.thediv');
+            shutdiv.style.visibility='hidden'; }
+        }
+      } // -->
+    </script>
+  </head>
+  <body onmousemove="closesubnav(event);">
+    <div id="masthead">
+      <div id="globalNav"> 
+        <img alt="" src="img_sistema/gblnav_left.gif" height="32" width="4" id="gnl" /> 
+        <img alt="" src="img_sistema/glbnav_right.gif" height="32" width="4" id="gnr" />
+        
+        <div id="globalLink"> 
+          <a href="#" id="gl1" class="glink" onMouseOver="ehandler(event,menuitem1);"><img alt="Recursos humanos" src="img_sistema/photo.png" height="20" width="20" border="0" /></a>
+          <a href="#" id="gl2" class="glink" onMouseOver="ehandler(event,menuitem2);"><img alt="Diseño y Desarrollo" src="img_sistema/design.png" height="20" width="20" border="0" /></a>
+          <a href="#" id="gl3" class="glink" onMouseOver="ehandler(event,menuitem3);"><img alt="Ingenieria" src="img_sistema/calculator.png" height="20" width="20" border="0" /></a>
+          <a href="#" id="gl4" class="glink" onMouseOver="ehandler(event,menuitem4);"><img alt="Ventas" src="img_sistema/sticker_black_sale.png" height="20" width="20" border="0" /></a>                    
+          <a href="#" id="gl5" class="glink" onMouseOver="ehandler(event,menuitem5);"><img alt="Almacén [M.P.]" src="img_sistema/box.png" height="20" width="20" border="0" /></a>
+          <a href="#" id="gl6" class="glink" onMouseOver="ehandler(event,menuitem6);"><img alt="Producción" src="img_sistema/gear.png" height="20" width="20" border="0" /></a>
+          <a href="#" id="gl7" class="glink" onMouseOver="ehandler(event,menuitem7);"><img alt="Programación" src="img_sistema/calendar.png" height="20" width="20" border="0" /></a>          
+          <a href="#" id="gl8" class="glink" onMouseOver="ehandler(event,menuitem8);"><img alt="Almacén [P.T.]" src="img_sistema/delivery.png" height="20" width="20" border="0" /></a>
+          <a href="#" id="gl9" class="glink" onMouseOver="ehandler(event,menuitem9);"><img alt="Sistema" src="img_sistema/tools.png" height="20" width="20" border="0" /></a>
+        </div>
+      </div>
+
+      <div id="subglobal1" class="subglobalNav"> | 
+        <a href="sm_rechum/rechEmpleado.php" target="cargador">Empleados</a> | 
+        <a href="sm_rechum/rechPeriodo.php" target="cargador">Periodos</a> | </div>
+
+      <div id="subglobal2" class="subglobalNav"> |
+        <a href="sm_producto/pdtoDiseno.php" target="cargador">Dise&ntilde;os</a> |
+        <a href="sm_producto/pdtoImpresion.php" target="cargador">Impresi&oacute;n</a> |
+        <a href="sm_producto/pdtoTinta.php" target="cargador">Tinta</a> |
+        <a href="sm_producto/pdtoConsumo.php" target="cargador">Consumo</a> |        
+        <a href="sm_producto/pdtoMateria.php" target="cargador">Materia prima</a> |
+        <a href="sm_producto/pdtoUnidad.php" target="cargador">Unidades</a> |</div>
+
+      <div id="subglobal3" class="subglobalNav"> | 
+        <a href="sm_produccion/prodProceso.php" target="cargador">Procesos</a> |
+        <a href="sm_produccion/prodMaquina.php" target="cargador">Maquinas</a> |
+        <a href="sm_produccion/prodOperacion.php" target="cargador">Operaciones</a> |
+        <a href="sm_produccion/prodCosto.php" target="cargador">Costos</a> | </div>
+
+      <div id="subglobal4" class="subglobalNav"> | 
+        <a href="sm_ventas/vntsCliente.php" target="cargador">Clientes</a> | 
+        <a href="sm_ventas/vntsSucursal.php" target="cargador">Sucursales</a> | 
+        <a href="sm_ventas/vntsCalEntrega.php" target="cargador">Entregas</a> | 
+        <a href="sm_ventas/vntsOC.php" target="cargador">O.C.</a> | 
+        <a href="sm_ventas/vntsEmbarque.php" target="cargador">Embarque</a> | </div>
+
+      <div id="subglobal5" class="subglobalNav"> |
+        <a href="sm_almacenmp/progBloque.php" target="cargador">Bloques</a> |
+        <a href="sm_almacenmp/progLote.php" target="cargador">Lotes</a> |
+        <a href="sm_almacenmp/progLiberacion.php" target="cargador">Liberaci&oacute;n</a> | </div>      
+        
+      <div id="subglobal6" class="subglobalNav">  
+        <a href="sm_produccion/prodCalendario.php" target="cargador">Producci&oacute;n</a> | 
+        <a href="sm_produccion/prodCalEntrega.php" target="cargador">Entregas</a> | 
+        <a href="sm_produccion/prodTablero.php" target="cargador">Tablero de control</a> |        
+        <a href="sm_produccion/prodProgramacion.php" target="cargador">Programaci&oacute;n</a> |
+        <a href="sm_produccion/prodImpresion.php" target="cargador">Impresi&oacute;n</a> | 
+        <a href="sm_produccion/prodRefilado.php" target="cargador">Refilado</a> |           
+        <a href="sm_produccion/prodLiberacionB.php" target="cargador">Liberaci&oacute;n</a> | 
+        <a href="sm_produccion/prodFusion.php" target="cargador">Fusi&oacute;n</a> | 
+        <a href="sm_produccion/prodRevisado.php" target="cargador">Revisado</a> |
+        <a href="sm_produccion/prodLiberacionR.php" target="cargador">Liberaci&oacute;n</a> |  
+        <a href="sm_produccion/prodCorte.php" target="cargador">Asignaci&oacute;n</a> | 
+        <a href="sm_produccion/prodBuscador.php" target="cargador">*Buscador</a></div>
+
+      <div id="subglobal7" class="subglobalNav"> </div>  
+      
+      <div id="subglobal8" class="subglobalNav"> Bobina [
+        <a href="sm_produccion/prodDocumento.php" target="cargador">Documentos</a> | 
+        <a href="sm_produccion/prodPacking.php" target="cargador">Packing List </a> ] Rollo [ 
+        <a href="sm_almacenpt/alptEmpaqueR.php" target="cargador">Empaque</a> |
+        <a href="sm_almacenpt/alptEmpaque.php" target="cargador">Peso Bruto</a> ] Paquete [ 
+        <a href="sm_almacenpt/alptEmpaqueP.php" target="cargador">Empaque</a> |
+        <a href="sm_almacenpt/alptEmpaqueC.php" target="cargador">Peso Bruto</a> ] Embarque [ 
+        <a href="sm_almacenpt/alptInventario.php" target="cargador">Inventario </a> ] </div>
+        
+      <div id="subglobal9" class="subglobalNav"> | 
+        <a href="sm_sistema/mapaEstado.php" target="cargador">Mapa</a> |
+        <a href="sgc/" target="cargador">S.G.C.</a> |
+        <a href="sm_sistema/sistUsuario.php" target="cargador">Usuarios</a> |
+        <a href="sm_sistema/sistPerfil.php" target="cargador">Perfiles</a> |
+        <a href="sm_sistema/sistPassword.php" target="cargador">Password</a> |</div> 
+      
+      <div id="dates"><script language="javascript" type="text/javascript"> document.write(hoy); </script></div>
+      
+    </div><br/>
+    
+    <script type="text/javascript">
+      
+      var menuitem1 = new menu(9,1,"hidden");
+      var menuitem2 = new menu(9,2,"hidden");
+      var menuitem3 = new menu(9,3,"hidden");
+      var menuitem4 = new menu(9,4,"hidden");
+      var menuitem5 = new menu(9,5,"hidden");
+      var menuitem6 = new menu(9,6,"hidden");
+      var menuitem7 = new menu(9,7,"hidden");
+      var menuitem8 = new menu(9,8,"hidden");      
+      var menuitem9 = new menu(9,9,"hidden"); 
+      
+    </script>
+
+  </body>
+</html>

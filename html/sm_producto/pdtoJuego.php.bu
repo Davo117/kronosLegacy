@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Juegos de cilíndros para impresión</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">   
+<?php
+
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_producto();
+
+  $sistModulo_cdgmodulo = '20015';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_POST['textusername'] AND $_POST['textpassword']) 
+    { val1dat3($_POST['textusername'], $_POST['textpassword']); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); 
+    } else
+    { echo '
+      <div id="loginform">
+        <form id="login" action="pdtoJuego.php" method="POST">';
+
+      log1n();
+
+      echo '
+        </form>
+      </div>
+    </div>
+  </body>
+</html>'; 
+
+      exit; }
+
+    $pdtoJuego_cdgimpresion = $_POST['slctCdgImpresion'];
+    $pdtoJuego_idjuego = trim($_POST['textIdJuego']);
+    $pdtoJuego_proveedor = trim($_POST['textProveedor']);    
+    $pdtoJuego_fchrecepcion = $_POST['dateFchRecepcion'];    
+    $pdtoJuego_alpaso = $_POST['textAlPaso'];
+    $pdtoJuego_algiro = $_POST['textAlGiro'];
+    $pdtoJuego_diametro = $_POST['textDiametro'];
+    $pdtoJuego_tabla = $_POST['textTabla'];
+    $pdtoJuego_registro = $_POST['textRegistro'];
+    $pdtoJuego_girosmax = $_POST['textGirosMax'];
+    
+    $pdtoJuego_viscosidad = $_POST['textViscosidad'];
+    $pdtoJuego_temperatura = $_POST['textTemperatura'];
+    $pdtoJuego_velocidad = $_POST['textVelocidad'];
+    $pdtoJuego_psigoma = $_POST['textPSIGoma'];
+    $pdtoJuego_psicilindro = $_POST['textPSICilindro'];
+    $pdtoJuego_psirasqueta = $_POST['tetxPSIRasqueta'];
+    
+    $pdtoJuego_tviscosidad = $_POST['textTViscosidad'];
+    $pdtoJuego_ttemperatura = $_POST['textTTemperarura'];
+    $pdtoJuego_tvelocidad = $_POST['textTVelocidad'];
+    $pdtoJuego_tpsigoma = $_POST['textTPSIGoma'];
+    $pdtoJuego_tpsicilindro = $_POST['textTPSICilindro'];
+    $pdtoJuego_tpsirasqueta = $_POST['textTPSIRasqueta'];
+
+    $pdtoJuego_fchrecepcion = ValidarFecha($pdtoJuego_fchrecepcion);    
+
+    if ($_GET['cdgjuego']) { $pdtoJuego_cdgjuego = $_GET['cdgjuego']; }
+    if ($_GET['cdgimpresion']) { $pdtoJuego_cdgimpresion = $_GET['cdgimpresion']; }
+
+    // Si doy click en alguna Impresión //
+    if ($_GET['cdgjuego'])
+    { if (substr($sistModulo_permiso,0,1) == 'r')
+      { $pdtoJuegoSelect = $link->query("
+          SELECT * FROM pdtojuego
+           WHERE cdgjuego = '".$_GET['cdgjuego']."'");
+        
+        if ($pdtoJuegoSelect->num_rows > 0)
+        { $regPdtoJuego = $pdtoJuegoSelect->fetch_object();
+
+          $pdtoJuego_cdgimpresion = $regPdtoJuego->cdgimpresion;
+          $pdtoJuego_idjuego = $regPdtoJuego->idjuego;
+          $pdtoJuego_proveedor = $regPdtoJuego->proveedor;
+          $pdtoJuego_fchrecepcion = $regPdtoJuego->fchrecepcion;
+          $pdtoJuego_alpaso = $regPdtoJuego->alpaso;
+          $pdtoJuego_algiro = $regPdtoJuego->algiro;
+          $pdtoJuego_diametro = $regPdtoJuego->diametro;
+          $pdtoJuego_tabla = $regPdtoJuego->tabla;
+          $pdtoJuego_registro = $regPdtoJuego->registro;
+          $pdtoJuego_altura = $regPdtoJuego->altura;
+          $pdtoJuego_anchura = $regPdtoJuego->anchura;
+          $pdtoJuego_girosmax = $regPdtoJuego->girosmax;
+
+          $pdtoJuego_viscosidad = $regPdtoJuego->viscosidad;
+          $pdtoJuego_temperatura = $regPdtoJuego->temperatura;
+          $pdtoJuego_velocidad = $regPdtoJuego->velocidad;
+          $pdtoJuego_psigoma = $regPdtoJuego->psigoma;
+          $pdtoJuego_psicilindro = $regPdtoJuego->psicilindro;
+          $pdtoJuego_psirasqueta = $regPdtoJuego->psirasqueta;
+
+          $pdtoJuego_tviscosidad = $regPdtoJuego->tviscosidad;
+          $pdtoJuego_ttemperatura = $regPdtoJuego->ttemperatura;
+          $pdtoJuego_tvelocidad = $regPdtoJuego->tvelocidad;
+          $pdtoJuego_tpsigoma = $regPdtoJuego->tpsigoma;
+          $pdtoJuego_tpsicilindro = $regPdtoJuego->tpsicilindro;
+          $pdtoJuego_tpsirasqueta = $regPdtoJuego->tpsirasqueta;
+
+          $pdtoJuego_cdgjuego = $regPdtoJuego->cdgjuego;
+          $pdtoJuego_sttjuego = $regPdtoJuego->sttjuego;
+        }
+
+        if ($_GET['proceso'] == 'update')
+        { if (substr($sistModulo_permiso,0,2) == 'rw')
+          { if ($pdtoJuego_sttjuego == '1')
+            { $pdtoJuego_newsttjuego = '0'; }
+          
+            if ($pdtoJuego_sttjuego == '0')
+            { $pdtoJuego_newsttjuego = '1'; }
+                 
+            $link->query("
+              UPDATE pdtojuego
+                 SET sttjuego = '".$pdtoJuego_newsttjuego."' 
+               WHERE cdgjuego = '".$pdtoJuego_cdgjuego."'");
+              
+            if ($link->affected_rows > 0)
+            { $msg_alert = 'El juego de cilíndros fue actualizado en su status.'; }
+            else
+            { $msg_alert = 'El juego de cilíndros NO fue actualizado (status).'; }
+          } else
+          { $msg_alert = $msg_norewrite; }            
+        }
+
+        if ($_GET['proceso'] == 'delete')
+        { if (substr($sistModulo_permiso,0,3) == 'rwx')
+          { $prodLoteSelect = $link->query("
+              SELECT * FROM prodloteope
+               WHERE cdgjuego = '".$pdtoJuego_cdgjuego."'");
+              
+            if ($prodLoteSelect->num_rows > 0)
+            { $msg_alert = 'El juego de cilíndros cuenta con lotes procesados, no puede ser eliminado.'; }
+            else
+            { $link->query("
+                DELETE FROM pdtojuego
+                 WHERE cdgjuego = '".$pdtoJuego_cdgjuego."' AND 
+                       sttjuego = '0'");
+                
+              if ($link->affected_rows > 0)
+              { $msg_alert = 'El juego de cilíndros fue eliminado con exito.'; 
+              } else
+              { $msg_alert = 'El juego de cilíndros NO fue eliminado.'; }
+            }
+          } else
+          { $msg_alert = $msg_nodelete; }
+        } 
+        
+      } else
+      { $msg_alert = $msg_noread; }
+    }
+
+    // Botón salvar //  
+    if ($_POST['bttnSalvar'])
+    { if (substr($sistModulo_permiso,0,2) == 'rw')
+      { if (strlen($pdtoJuego_cdgimpresion) > 0 AND strlen($pdtoJuego_idjuego) > 0)
+        { // Buscar coincidencias
+          $pdtoImpresionSelect = $link->query("
+            SELECT ancho
+              FROM pdtoimpresion
+             WHERE cdgimpresion = '".$pdtoJuego_cdgimpresion."'");
+
+          if ($pdtoImpresionSelect->num_rows > 0)
+          { $regPdtoImpresion = $pdtoImpresionSelect->fetch_object();
+
+            $pdtoImpresion_ancho = $regPdtoImpresion->ancho;
+            
+            // Validación del ancho de la tabla contra el diseño
+            if (($pdtoJuego_tabla-$pdtoJuego_registro) == ($pdtoJuego_alpaso*$pdtoImpresion_ancho))
+            { $pdtoJuegoSelect = $link->query("
+                SELECT * FROM pdtojuego
+                 WHERE cdgimpresion = '".$pdtoJuego_cdgimpresion."' AND 
+                       idjuego = '".$pdtoJuego_idjuego."'");
+            
+              if ($pdtoJuegoSelect->num_rows > 0)
+              { $regPdtoJuego = $pdtoJuegoSelect->fetch_object();
+
+                $pdtoJuego_cdgjuego = $regPdtoJuego->cdgjuego;
+
+                $prodLoteSelect = $link->query("
+                  SELECT * FROM prodloteope
+                   WHERE cdgjuego = '".$pdtoJuego_cdgjuego."'");
+                  
+                if ($prodLoteSelect->num_rows > 0)
+                { $link->query("
+                    UPDATE pdtojuego
+                       SET viscosidad = '".$pdtoJuego_viscosidad."',
+                           temperatura = '".$pdtoJuego_temperatura."',
+                           velocidad = '".$pdtoJuego_velocidad."',
+                           psigoma = '".$pdtoJuego_psigoma."',
+                           psicilindro = '".$pdtoJuego_psicilindro."',
+                           psirasqueta = '".$pdtoJuego_psirasqueta."',
+                           tviscosidad = '".$pdtoJuego_tviscosidad."',
+                           ttemperatura = '".$pdtoJuego_ttemperatura."',
+                           tvelocidad = '".$pdtoJuego_tvelocidad."',
+                           tpsigoma = '".$pdtoJuego_tpsigoma."',
+                           tpsicilindro = '".$pdtoJuego_tpsicilindro."',
+                           tpsirasqueta = '".$pdtoJuego_tpsirasqueta."'
+                     WHERE cdgjuego = '".$pdtoJuego_cdgjuego."' AND 
+                           sttjuego = '1'");
+                    
+                  if ($link->affected_rows > 0) 
+                  { $msg_alert = 'El juego de cilíndros fue actualizado con exito. (Parámetros de operación)'; }
+                  else
+                  { $msg_alert = 'El juego de cilíndros NO fue actualizado.'; }
+                } else
+                { $pdtoJuego_altura = number_format((($pdtoJuego_diametro*pi())/$pdtoJuego_algiro),5);
+                  $pdtoJuego_anchura = number_format((($pdtoJuego_tabla-$pdtoJuego_registro)/$pdtoJuego_alpaso),5);
+
+                  $link->query("
+                    UPDATE pdtojuego
+                       SET proveedor = '".$pdtoJuego_proveedor."',
+                           fchrecepcion = '".$pdtoJuego_fchrecepcion."',
+                           alpaso = '".$pdtoJuego_alpaso."',
+                           algiro = '".$pdtoJuego_algiro."',
+                           diametro = '".$pdtoJuego_diametro."',
+                           tabla = '".$pdtoJuego_tabla."',
+                           registro = '".$pdtoJuego_registro."',
+                           altura = '".$pdtoJuego_altura."',
+                           anchura = '".$pdtoJuego_anchura."',
+                           girosmax = '".$pdtoJuego_girosmax."',
+                           viscosidad = '".$pdtoJuego_viscosidad."',
+                           temperatura = '".$pdtoJuego_temperatura."',
+                           velocidad = '".$pdtoJuego_velocidad."',
+                           psigoma = '".$pdtoJuego_psigoma."',
+                           psicilindro = '".$pdtoJuego_psicilindro."',
+                           psirasqueta = '".$pdtoJuego_psirasqueta."',
+                           tviscosidad = '".$pdtoJuego_tviscosidad."',
+                           ttemperatura = '".$pdtoJuego_ttemperatura."',
+                           tvelocidad = '".$pdtoJuego_tvelocidad."',
+                           tpsigoma = '".$pdtoJuego_tpsigoma."',
+                           tpsicilindro = '".$pdtoJuego_tpsicilindro."',
+                           tpsirasqueta = '".$pdtoJuego_tpsirasqueta."'
+                     WHERE cdgjuego = '".$pdtoJuego_cdgjuego."' AND 
+                           sttjuego = '1'");
+                    
+                  if ($link->affected_rows > 0) 
+                  { $msg_alert = 'El juego de cilíndros fue actualizado con exito.'; }
+                  else
+                  { $msg_alert = 'El juego de cilíndros NO fue actualizado.'; }
+                } 
+              } else
+              { for ($subcdgjuego = 1; $subcdgjuego <= 100; $subcdgjuego++)
+                { $pdtoJuego_cdgjuego = $pdtoJuego_cdgimpresion.str_pad($subcdgjuego,3,'0',STR_PAD_LEFT);
+
+                  if ($subcdgjuego > 99)
+                  { $msg_alert = 'El juego de cilíndros NO fue insertado, se ha alcanzado el tope de juegos por impresion.'; }
+                  else
+                  { $link->query("
+                      INSERT INTO pdtojuego
+                        (cdgimpresion, idjuego, proveedor, fchrecepcion, alpaso, algiro, diametro, tabla, registro, altura, anchura, girosmax, viscosidad, tviscosidad, temperatura, ttemperatura, velocidad, tvelocidad, psigoma, tpsigoma, psicilindro, tpsicilindro, psirasqueta, tpsirasqueta, cdgjuego)
+                      VALUES
+                        ('".$pdtoJuego_cdgimpresion."', '".$pdtoJuego_idjuego."', '".$pdtoJuego_proveedor."', '".$pdtoJuego_fchrecepcion."', '".$pdtoJuego_alpaso."', '".$pdtoJuego_algiro."',  '".$pdtoJuego_diametro."', '".$pdtoJuego_tabla."', '".$pdtoJuego_registro."', '".number_format((($pdtoJuego_diametro*pi())/$pdtoJuego_algiro),5)."', '".number_format((($pdtoJuego_tabla-$pdtoJuego_registro)/$pdtoJuego_alpaso),5)."', '".$pdtoJuego_girosmax."', '".$pdtoJuego_viscosidad."', '".$pdtoJuego_tviscosidad."', '".$pdtoJuego_temperatura."', '".$pdtoJuego_ttemperatura."', '".$pdtoJuego_velocidad."', '".$pdtoJuego_tvelocidad."', '".$pdtoJuego_psigoma."', '".$pdtoJuego_tpsigoma."', '".$pdtoJuego_psicilindro."', '".$pdtoJuego_tpsicilindro."', '".$pdtoJuego_psirasqueta."', '".$pdtoJuego_tpsirasqueta."', '".$pdtoJuego_cdgjuego."')");
+
+                    if ($link->affected_rows > 0) 
+                    { $msg_alert = 'El juego de cilíndros fue insertado con exito.'; 
+
+                      $subcdgjuego = 100; }      
+                  }
+                }
+              }               
+            } else
+            { $msg_alert = 'La medida de la tabla no permite garantizar el ancho del diseño original.'; }
+            //Final de la validación
+          } else
+          { $msg_alert = 'Los juegos de cilidros deben pertenecer a un diseño'; }
+        } 
+      } else
+      { $msg_alert = $msg_norewrite; }         
+    }
+
+    // Filtro de Impresiones //
+    if (substr($sistModulo_permiso,0,1) == 'r')
+    { $pdtoDisenoSelect = $link->query("
+        SELECT * FROM pdtodiseno
+         WHERE sttdiseno = '1'
+      ORDER BY iddiseno");
+
+      if ($pdtoDisenoSelect->num_rows > 0)
+      { $item = 0;
+
+        while ($regPdtoDiseno = $pdtoDisenoSelect->fetch_object())
+        { $pdtoDisenos_diseno[$regPdtoDiseno->cdgdiseno] = $regPdtoDiseno->diseno;
+       
+          $pdtoImpresionSelect = $link->query("
+            SELECT * FROM pdtoimpresion
+             WHERE cdgdiseno = '".$regPdtoDiseno->cdgdiseno."' AND
+                   sttimpresion = '1'
+          ORDER BY impresion,
+                   idimpresion");
+          
+          if ($pdtoImpresionSelect->num_rows > 0)
+          { while ($regPdtoImpresion = $pdtoImpresionSelect->fetch_object()) 
+            { $item++;
+
+              $pdtoImpresiones_cdgdiseno[$item] = $regPdtoImpresion->cdgdiseno;
+              $pdtoImpresiones_idimpresion[$item] = $regPdtoImpresion->idimpresion;
+              $pdtoImpresiones_impresion[$item] = $regPdtoImpresion->impresion;
+              $pdtoImpresiones_ancho[$item] = $regPdtoImpresion->ancho;
+              $pdtoImpresiones_alto[$item] = $regPdtoImpresion->alto;
+              $pdtoImpresiones_cdgimpresion[$item] = $regPdtoImpresion->cdgimpresion; }
+          }
+        }
+
+        $nImpresiones = $item; }
+
+      // Vista de juegos por diseño //
+      if ($_POST['chckVerTodo'])
+      { $vertodo = 'checked'; 
+      
+        $pdtoJuegoSelect = $link->query("
+          SELECT pdtojuego.idjuego,
+                 pdtojuego.proveedor,
+                 pdtojuego.fchrecepcion,
+                 pdtojuego.girosmax,
+                 pdtojuego.alpaso,
+                 pdtojuego.algiro,               
+                 pdtojuego.diametro,
+                 pdtojuego.tabla,
+                 pdtojuego.registro,
+                 pdtojuego.altura,
+                 pdtojuego.anchura,
+                 pdtojuego.cdgjuego,
+                 pdtojuego.sttjuego
+            FROM pdtojuego
+           WHERE pdtojuego.cdgimpresion = '".$pdtoJuego_cdgimpresion."'
+        ORDER BY pdtojuego.sttjuego DESC,
+                 pdtojuego.fchrecepcion DESC"); 
+      } else
+      { $pdtoJuegoSelect = $link->query("
+          SELECT pdtojuego.idjuego,
+                 pdtojuego.proveedor,
+                 pdtojuego.fchrecepcion,
+                 pdtojuego.girosmax,
+                 pdtojuego.alpaso,
+                 pdtojuego.algiro,
+                 pdtojuego.diametro,
+                 pdtojuego.tabla,
+                 pdtojuego.registro,
+                 pdtojuego.altura,
+                 pdtojuego.anchura,
+                 pdtojuego.cdgjuego,
+                 pdtojuego.sttjuego
+            FROM pdtojuego
+           WHERE pdtojuego.cdgimpresion = '".$pdtoJuego_cdgimpresion."' AND 
+                 pdtojuego.sttjuego = '1'
+        ORDER BY pdtojuego.fchrecepcion DESC"); }
+      
+      if ($pdtoJuegoSelect->num_rows > 0)
+      { $item = 0;
+
+        while ($regPdtoJuego = $pdtoJuegoSelect->fetch_object())
+        { $item++; 
+
+          $pdtoJuegos_idjuego[$item] = $regPdtoJuego->idjuego;
+          $pdtoJuegos_proveedor[$item] = $regPdtoJuego->proveedor;
+          $pdtoJuegos_fchrecepcion[$item] = $regPdtoJuego->fchrecepcion;
+          $pdtoJuegos_alpaso[$item] = $regPdtoJuego->alpaso;
+          $pdtoJuegos_algiro[$item] = $regPdtoJuego->algiro;
+          $pdtoJuegos_diametro[$item] = $regPdtoJuego->diametro;
+          $pdtoJuegos_tabla[$item] = $regPdtoJuego->tabla;
+          $pdtoJuegos_registro[$item] = $regPdtoJuego->registro;
+          $pdtoJuegos_altura[$item] = $regPdtoJuego->altura;
+          $pdtoJuegos_anchura[$item] = $regPdtoJuego->anchura;
+          $pdtoJuegos_girosmax[$item] = $regPdtoJuego->girosmax;          
+          $pdtoJuegos_cdgjuego[$item] = $regPdtoJuego->cdgjuego;
+          $pdtoJuegos_sttjuego[$item] = $regPdtoJuego->sttjuego;
+
+          // Consulta de desgaste proyectado por juego de cilíndros         
+          $prodLoteOpeSelect = $link->query("
+            SELECT ((SUM(prodloteope.longitud)*pdtojuego.alpaso)/pdtojuego.altura) AS desgaste
+              FROM pdtoimpresion, 
+                   pdtojuego, 
+                   prodloteope
+             WHERE pdtoimpresion.cdgimpresion = pdtojuego.cdgimpresion AND 
+                   pdtojuego.cdgjuego = prodloteope.cdgjuego AND 
+                   prodloteope.cdgjuego = '".$pdtoJuegos_cdgjuego[$item]."' AND 
+                   prodloteope.cdgoperacion = '10001'");
+
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $regProdLoteOpe = $prodLoteOpeSelect->fetch_object(); 
+
+            $pdtoJuegos_desgasteP[$item] = $regProdLoteOpe->desgaste; }
+          // Final de la consulta de desgaste proyectado
+
+          // Consulta de desgaste efectuado por juego de cilíndros        
+          $prodLoteOpeSelect = $link->query("
+            SELECT ((SUM(prodloteope.longitud)*pdtojuego.alpaso)/pdtojuego.altura) AS desgaste
+              FROM pdtoimpresion, 
+                   pdtojuego, 
+                   prodloteope
+             WHERE pdtoimpresion.cdgimpresion = pdtojuego.cdgimpresion AND 
+                   pdtojuego.cdgjuego = prodloteope.cdgjuego AND 
+                   prodloteope.cdgjuego = '".$pdtoJuegos_cdgjuego[$item]."' AND 
+                   prodloteope.cdgoperacion = '20001'");
+
+          if ($prodLoteOpeSelect->num_rows > 0)
+          { $regProdLoteOpe = $prodLoteOpeSelect->fetch_object(); 
+
+            $pdtoJuegos_desgasteR[$item] = $regProdLoteOpe->desgaste; }
+          // Final de la consulta de desgaste registrado
+        }
+
+        $nJuegos = $item; }
+    }
+//*/
+    echo '
+      <div class="bloque">
+        <form id="formulario" name="formulario" method="POST" action="pdtoJuego.php">
+          <article class="subbloque">
+            <label class="modulo_nombre">Juego de cilindros</label>
+          </article>
+          <input type="checkbox" id="chckVerTodo" name="chckVerTodo" onclick="document.formulario.submit()" '.$vertodo.'><label>ver todo</label>
+          <a href="ayuda.php#Juegos">'.$_help_blue.'</a>
+
+          <section class="subbloque">
+            <article>
+              <label><a href="../sm_producto/pdtoimpresion.php?cdgimpresion='.$pdtoJuego_cdgimpresion.'">Impresión</a></label><br/>
+              <select id="slctCdgImpresion" name="slctCdgImpresion" onchange="document.formulario.submit()">
+                <option value="">-</option>';
+      
+    for ($item = 1; $item <= $nImpresiones; $item++) 
+    { echo '
+                <option value="'.$pdtoImpresiones_cdgimpresion[$item].'"';
+              
+      if ($pdtoJuego_cdgimpresion == $pdtoImpresiones_cdgimpresion[$item]) 
+      { $pdtoImpresion_ancho = $pdtoImpresiones_ancho[$item];
+        $pdtoImpresion_alto = $pdtoImpresiones_alto[$item];
+        echo ' selected="selected"'; }
+
+      echo '>'.$pdtoImpresiones_idimpresion[$item].' - '.$pdtoDisenos_diseno[$pdtoImpresiones_cdgdiseno[$item]].' | '.$pdtoImpresiones_impresion[$item].'</option>'; }
+
+    echo '
+              </select>
+            </article>
+
+            <article>
+              <label>Identificador</label><br/>
+              <input type="text" id="textIdJuego" name="textIdJuego" value="'.$pdtoJuego_idjuego.'" placeholder="#" required/>          
+            </article>
+
+            <article>
+              <label>Proveedor</label><br/>
+              <input type="text" id="textProveedor" name="textProveedor" value="'.$pdtoJuego_proveedor.'" required/>
+            </article>
+
+            <article>
+              <label>Fecha de recepción</label><br/>
+              <input type="date" id="dateFchRecepcion" name="dateFchRecepcion" value="'.$pdtoJuego_fchrecepcion.'" required/>
+            </article>
+          </section>
+
+          <section class="subbloque">
+            <article>
+              <label>Diámetro <i>mm</i></label><br/>
+              <input type="text" class="input_numero" id="textDiametro" name="textDiametro" value="'.$pdtoJuego_diametro.'" placeholder="milímetros" required/>
+            </article>
+
+            <article>
+              <label>Tabla <i>mm</i></label><br/>
+              <input type="text" class="input_numero" id="textTabla" name="textTabla" value="'.$pdtoJuego_tabla.'" placeholder="milímetros" required/>
+            </article>
+
+            <article>
+              <label>Registro <i>mm</i></label><br/>
+              <input type="text" class="input_numero" id="textRegistro" name="textRegistro" value="'.$pdtoJuego_registro.'" placeholder="milímetros" required/>
+            </article>
+          </section>
+
+          <section class="subbloque">
+            <article>
+              <label>Repeticiones al paso</label><br/>
+              <input type="text" class="input_numero" id="textAlPaso" name="textAlPaso" value="'.$pdtoJuego_alpaso.'" placeholder="#" required/>
+            </article>
+
+            <article>
+              <label>Repeticiones al giro</label><br/>
+              <input type="text" class="input_numero" id="textAlGiro" name="textAlGiro" value="'.$pdtoJuego_algiro.'" placeholder="#" required/>
+            </article>
+
+            <article>
+              <label>Giros garantizados</label><br/>
+              <input type="text" class="input_numero" id="textGirosMax" name="textGirosMax" value="'.$pdtoJuego_girosmax.'" placeholder="#" required/>
+            </article>
+
+            <article>
+              <br><input type="submit" id="bttnSalvar" name="bttnSalvar" value="Salvar" />
+            </article>            
+          </section>
+
+          <section class="subbloque">
+            <label class="titulosubbloque">Parámetros de operación</label><br><hr>
+            
+            <article>
+              <label>Viscosidad</label><br>
+              <input type="text" class="input_numero" id="textViscosidad" name="textViscosidad" value="'.$pdtoJuego_viscosidad.'" placeholder="segundos" required/> 
+            </article>
+
+            <article>
+              <label>Tolerancia en viscosidad</label><br>
+              <input type="text" class="input_numero" id="textTViscosidad" name="textTViscosidad" value="'.$pdtoJuego_tviscosidad.'" placeholder="+/- segundos" required/>
+            </article>
+
+            <article>
+              <label>Temperatura</label><br>
+              <input type="text" class="input_numero" id="textTemperatura" name="textTemperatura" value="'.$pdtoJuego_temperatura.'" placeholder="grados" required/> 
+            </article>
+
+            <article>
+              <label>Tolerancia en temperatura</label><br>
+              <input type="text" class="input_numero" id="textTTemperarura" name="textTTemperarura" value="'.$pdtoJuego_ttemperatura.'" placeholder="+/- grados" required/>          
+            </article>
+          </section>
+
+          <section class="subbloque">
+            <article>
+              <label>Velocidad</label><br>
+              <input type="text" class="input_numero" id="textVelocidad" name="textVelocidad" value="'.$pdtoJuego_velocidad.'" placeholder="mts/min" required/>
+            </article>
+
+            <article>
+              <label>Tolerancia en velocidad</label><br>
+              <input type="text" class="input_numero" id="textTVelocidad" name="textTVelocidad" value="'.$pdtoJuego_tvelocidad.'" placeholder="+/- mts/min" required/>
+            </article>
+
+            <article>
+              <label>Presión de la goma</label><br>
+              <input type="text" class="input_numero" id="textPSIGoma" name="textPSIGoma" value="'.$pdtoJuego_psigoma.'" placeholder="psi" required/>
+            </article>
+
+            <article>
+              <label>Tolerancia en goma</label><br>
+              <input type="text" class="input_numero" id="textTPSIGoma" name="textTPSIGoma" value="'.$pdtoJuego_tpsigoma.'" placeholder="+/- psi" required/>
+            </article>
+          </section>
+
+          <section class="subbloque">
+            <article>
+              <label>Presión del cilindro</label><br>
+              <input type="text" class="input_numero" id="textPSICilindro" name="textPSICilindro" value="'.$pdtoJuego_psicilindro.'" placeholder="psi" required/>
+            </article>
+
+            <article>
+              <label>Tolerancia en cilindro</label><br>
+              <input type="text" class="input_numero" id="textTPSICilindro" name="textTPSICilindro" value="'.$pdtoJuego_tpsicilindro.'" placeholder="+/- psi" required/>
+            </article>
+
+            <article>
+              <label>Presión de la rasqueta</label><br>
+              <input type="text" class="input_numero" id="tetxPSIRasqueta" name="tetxPSIRasqueta" value="'.$pdtoJuego_psirasqueta.'" placeholder="psi" required/>
+            </article>
+
+            <article>
+              <label>Tolerancia en rasqueta</label><br>
+              <input type="text" class="input_numero" id="textTPSIRasqueta" name="textTPSIRasqueta" value="'.$pdtoJuego_tpsirasqueta.'" placeholder="+/- psi" required/>
+            </article>
+          </section>
+        </form>
+      </div>';
+
+    if ($nJuegos > 0)
+    { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Catálogo de juegos de cilindros por diseño</label>
+        </article>
+        <label><b>'.$nJuegos.'</b> Encontrado(s)</label>';
+
+      for ($item=1; $item<=$nJuegos; $item++)
+      { echo '
+        <section class="listado">
+          <article>
+            <label><acronym title="'.$pdtoJuegos_proveedor[$item].'"><b>'.$pdtoJuegos_idjuego[$item].'</b></acronym></label><br/>';
+        if ((int)$pdtoJuegos_sttjuego[$item] > 0)
+        { echo '
+            <a href="pdtoJuego.php?cdgjuego='.$pdtoJuegos_cdgjuego[$item].'">'.$_search.'</a>
+            <a href="pdtoJuego.php?cdgjuego='.$pdtoJuegos_cdgjuego[$item].'&proceso=update">'.$_power_blue.'</a>'; }
+        else
+        { echo '
+            <a href="pdtoJuego.php?cdgjuego='.$pdtoJuegos_cdgjuego[$item].'&proceso=delete">'.$_recycle_bin.'</a>
+            <a href="pdtoJuego.php?cdgjuego='.$pdtoJuegos_cdgjuego[$item].'&proceso=update">'.$_power_black.'</a>'; }
+
+        echo '
+          </article>
+
+          <article align="right">
+            <label><i>milímetros</i></label><br/>
+            <label>Perímetro <b>'.number_format(($pdtoJuegos_diametro[$item]*3.1416),5,'.','').'</b></label><br/>
+            <label>Diámetro <b>'.number_format($pdtoJuegos_diametro[$item],5,'.','').'</b></label><br/>
+            <label>Tabla <b>'.number_format($pdtoJuegos_tabla[$item],5,'.','').'</b></label>
+          </article>
+
+          <article align="right">
+            <label><i>millares</i></label><br/>
+            <label>Rendimiento <b>'.number_format((($pdtoJuegos_alpaso[$item]*$pdtoJuegos_algiro[$item])*($pdtoJuegos_girosmax[$item]/1000)),3,'.','').'</b></label><br/>
+            <label>Programado <b>'.number_format($pdtoJuegos_desgasteP[$item],3,'.','').'</b></label><br/>
+            <label>Registrado <b>'.number_format($pdtoJuegos_desgasteR[$item],3,'.','').'</b></label>
+          </article>
+
+         <article align="right">
+            <label><i>milímetros</i></label><br/>
+            <label>Altura <b>'.number_format($pdtoJuegos_altura[$item],5,'.','').'</b></label><br/>
+            <label>Anchura <b>'.number_format($pdtoJuegos_anchura[$item],5,'.','').'</b></label><br/>
+            <label>Cilindro (&nbsp;&nbsp;&nbsp;&nbsp;)</label>
+          </article>
+
+          <article align="right">
+            <label><i>milímetros</i></label><br/>
+            <label>Altura <b>'.number_format($pdtoImpresion_alto,5,'.','').'</b></label><br/>
+            <label>Anchura <b>'.number_format($pdtoImpresion_ancho,5,'.','').'</b></label><br/>
+            <label>Diseño [&nbsp;&nbsp;&nbsp;&nbsp;]</label>
+          </article>
+        </section>'; }
+
+      echo '
+      </div>'; }
+
+    if ($msg_alert != '')
+    { echo '
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+  } else
+  { echo '
+      <div><h1>Módulo no encontrado o bloqueado.</h1></div>'; }
+?>
+
+    </div>
+  </body> 
+</html>

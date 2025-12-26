@@ -1,0 +1,157 @@
+body {
+  background: #E6E6E6;
+  color: #262626;
+  font-family: Arial, san-serif;
+}
+
+#formulario {  
+  background-color: #A4A4A4; 
+  width: 340px;  
+  padding: 20px;  
+  margin: 50px auto;  
+  border-radius: 15px;    
+  -moz-border-radius: 15px;  
+  -webkit-border-radius: 15px;  
+} 
+
+#listado {  
+  background-color: #A4A4A4; 
+  width: 680px;  
+  padding: 20px;  
+  margin: 50px auto;  
+  border-radius: 15px;    
+  -moz-border-radius: 15px;  
+  -webkit-border-radius: 15px;  
+} 
+
+#bloque {
+  font-size: 32px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}
+
+#modulo {
+  font-size: 26px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}
+
+#operacion {
+  font-size: 20px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}
+
+#formulario #bloque {
+  font-size: 32px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}
+
+#formulario #modulo {
+  font-size: 26px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}
+
+#formulario #operacion {
+  font-size: 20px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}
+
+#formulario #icono {
+  float: right;
+}
+
+#formulario input,   
+#formulario select,   
+#formulario textarea,   
+#formulario label {  
+  font-size: 15px;  
+  margin-bottom: 2px;
+  font-family: Arial, san-serif;
+}  
+
+
+#formulario input,   
+#formulario select,   
+#formulario textarea {  
+  width: 330px;
+  background: #fff;
+  border: 0; 
+  -moz-border-radius: 5px;  
+  -webkit-border-radius: 5px;  
+  border-radius: 5px;
+  margin-bottom: 25px;  
+  padding: 5px;  
+}  
+
+#formulario input:focus,   
+#formulario select:focus,   
+#formulario textarea:focus {  
+  background-color: #E5E6E7; 
+}  
+
+#formulario textarea {  
+  height: 150px;   
+}  
+ 
+#formulario #submit {  
+  width: 340px;   
+  color: #424242;  
+  border: none;  
+  background-color: #E6E6E6;
+}  
+
+#formulario #submit:hover {  
+  background-color: #424242;  
+  color: #E6E6E6; 
+}
+
+#formulario #upload {  
+  width: 340px;   
+  color: #E6E6E6;  
+  border: none;  
+  background-color: #424242;
+}  
+
+#formulario #upload:hover {  
+  background-color: #E6E6E6;  
+  color: #424242; 
+}
+ 
+input:required, textarea:required {  
+  box-shadow: none;
+  -moz-box-shadow: none;  
+  -webkit-box-shadow: none;  
+  -o-box-shadow: none;  
+} 
+
+#formulario .required {  
+  font-weight:bold;  
+  color: #E5E6E7;      
+}
+
+#failure, #success {
+  color: #6EA070; 
+}
+
+#formulario #logo {
+width: 335px;
+border-radius: 45% / 20%; /* Borde redondeado */
+box-shadow: 0px 0px 15px #000; /* Sombra */
+padding:0;
+-moz-transition: all 1s;
+-webkit-transition: all 1s;
+-o-transition: all 1s;
+}
+
+#formulario #logo:hover {
+width: 335px;
+border-radius: 0; /* Con esto eliminamos el borde redondeado */
+-moz-transition: all 1s;
+-webkit-transition: all 1s;
+-o-transition: all 1s;
+cursor:pointer;
+}

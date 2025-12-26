@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Menú principal</title>
+    <link rel="stylesheet" type="text/css" href="css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">
+
+<?php 
+  include 'datos/mysql.php';
+
+  $_meses[1] = "Enero";
+  $_meses[2] = "Febrero";
+  $_meses[3] = "Marzo";
+  $_meses[4] = "Abril";
+  $_meses[5] = "Mayo";
+  $_meses[6] = "Junio";
+  $_meses[7] = "Julio";
+  $_meses[8] = "Agosto";
+  $_meses[9] = "Septiembre";
+  $_meses[10] = "Octubre";
+  $_meses[11] = "Noviembre";
+  $_meses[12] = "Diciembre";
+
+  echo '      
+      <section id="modulo_barraup">
+        <img id="imagen_menu" src="img_sistema/power_blue.png"/>
+        <article id="menu_nombre">
+          <label><b>Menú principal</b></label><br>
+          <label>'.$_meses[date('n')].' '.date('d').', '.date('Y').'</label>
+        </article>
+      </section>';
+
+  if ($_GET['mode']=='logout') { cl0s3(); }
+
+  if ($_SESSION["cdgusuario"]) 
+  { ma1n(); } 
+?>
+
+      <div id="menu_principal">
+        <section>
+          <article class="logo_empresa">
+            <img src="img_sistema/logonew.png" />
+          </article>
+        </section>
+        <section>
+          <article class="submenu">
+            <a href="sm_rechum/rechEmpleado.php"><img src="img_sistema/photo.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_producto/pdtoDiseno.php"><img src="img_sistema/design.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_ventas/vntsCliente.php"><img src="img_sistema/exchange.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_almacenmp/progBloque.php"><img src="img_sistema/shopping_cart.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_produccion/prodMenu.php"><img src="img_sistema/gear.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_inspeccion/inspBuscador.php"><img src="img_sistema/certificate.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_almacenpt/alptPesaje.php"><img src="img_sistema/box.png" /></a>
+          </article>
+          <article class="submenu">
+            <a href="sm_sistema/mapaEstado.php"><img src="img_sistema/game_pad.png" /></a>
+          </article>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

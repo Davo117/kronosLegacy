@@ -1,0 +1,60 @@
+table {
+font-family:monospace;
+font-size:5px;
+text-align: center;
+width: 1000px;
+border-radius:5px; 
+-moz-border-radius:6px; /* Firefox */ 
+-webkit-border-radius:6px; /* Safari y Chrome */ 
+
+}
+th {
+padding: 4px;
+font-size: 16px;
+background-color: #8181F7;
+background-repeat: repeat-x;
+color: #FFF;
+border-right-width: 1px;
+border-bottom-width: 1px;
+border-right-style: solid;
+border-bottom-style: solid;
+border-right-color: #000;
+border-bottom-color: #000;
+font-family: “Trebuchet MS”, Arial;
+text-transform: uppercase;
+border-radius:5px; 
+-moz-border-radius:6px; /* Firefox */ 
+-webkit-border-radius:6px; /* Safari y Chrome */ 
+/*border-radius:1.10rem:*/ 
+}
+td {
+padding: 4px;
+font-size: 16px;
+background-color: #CEE3F6;
+background-image: url('../pictures/tableBackground.jpg');
+background-repeat: repeat-x;
+color: #000;
+border-right-width: 1px;
+border-bottom-width:1px;
+border-right-style: solid;
+border-bottom-style: solid;
+border-right-color: #000;
+border-bottom-color: #000;
+font-family: monospace;
+text-transform: uppercase;
+border-radius:5px; 
+-moz-border-radius:6px; /* Firefox */ 
+-webkit-border-radius:6px; /* Safari y Chrome */ 
+}
+tr:hover td:nth-of-type(1n+1){
+  background-image: url('../pictures/tableOrange.jpg');
+  background-repeat: repeat-x;
+  border-color:gray;
+}
+td:hover
+{
+background-color: #E6E6E6;
+background-image: url('../pictures/tableOrange.jpg');
+background-repeat: repeat-x;
+color: #fff;
+}

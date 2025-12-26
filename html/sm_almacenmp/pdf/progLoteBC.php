@@ -1,0 +1,96 @@
+<?php
+  include '../../datos/mysql.php';	
+  include '../../fpdf/fpdflbl.php';
+  
+  $link = conectar();
+
+  $progLote_cdgbloque = $_GET['cdgbloque'];
+  
+  $querySelect = $link->query("
+     SELECT pdtosustrato.sustrato,
+            pdtosustrato.anchura,
+            proglote.idlote,
+            proglote.lote,
+            proglote.tarima,
+            proglote.longitud,
+            proglote.peso,
+            proglote.cdglote
+       FROM progbloque,
+            proglote,
+            pdtosustrato
+      WHERE pdtosustrato.cdgsustrato = progbloque.cdgsustrato AND
+            progbloque.cdgbloque = '".$progLote_cdgbloque."' AND
+            proglote.cdgbloque = progbloque.cdgbloque
+   ORDER BY proglote.cdglote"); 
+
+  if ($querySelect->num_rows > 0)
+  { $pdf=new FPDF('P','mm','lbl4x2'); 
+    $pdf->SetDisplayMode(real, continuous);
+    $pdf->AddFont('3of9','','free3of9.php');
+    
+    while ($regQuery = $querySelect->fetch_object())
+    { $pdf->AddPage();
+
+      $pdf->SetY(10);
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(48,4,'Sustrato',0,1,'L');
+      $pdf->SetFont('Arial','B',12);
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(98,4,$regQuery->tipomp,0,1,'L');  
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(98,4,$regQuery->sustrato,0,1,'L');  
+
+      $pdf->Ln(4);
+
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(18,4,'Informacion',0,1,'L');
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(18,4,'Longitud',0,0,'L');
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(40,4,number_format($regQuery->longitud,2).' m',0,1,'R'); 
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(18,4,'Peso',0,0,'L');
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(40,4,number_format($regQuery->peso,3).' kgs',0,1,'R');
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(3,4,'',0,0,'L');
+      $pdf->Cell(18,4,'Referencia',0,0,'L');
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(40,4,$regQuery->lote,0,1,'R');
+
+      $pdf->SetY(-7);     
+      $pdf->Cell(3,5,'',0,0,'L');      
+      $pdf->SetFont('Arial','B',20);
+      $pdf->Cell(0,5,$regQuery->tarima.' | '.$regQuery->idlote,0,1,'C');
+      
+      // Código de barras
+      $pdf->SetY(4);
+      $pdf->SetFont('3of9','',28);      
+      $pdf->Cell(80,5,'',0,0,'R'); 
+      $pdf->Cell(16,5,'*'.$regQuery->cdglote.'*',0,1,'R');
+      $pdf->Ln(1);
+      $pdf->SetFont('Arial','',8); 
+      $pdf->Cell(50,3,'',0,0,'R'); 
+      $pdf->Cell(46,3,$regQuery->cdglote,0,1,'C'); }
+
+    $pdf->Output();
+  } else
+  { echo '<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Etiqueta de identificación para lote de materia prima</title>   
+    <link rel="stylesheet" type="text/css" href="../../css/2014.css" /> 
+  </head>
+  <body>
+    <label><h1>'.utf8_decode('Referencia inválida.').'</h1></label>
+  </body>
+</html>'; }
+?>

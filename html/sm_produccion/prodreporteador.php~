@@ -1,0 +1,624 @@
+<?php include '../datos/mysql.php'; 
+  $link = conectar(); ?><!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        background: #E6E6E6;
+        color: #262626;
+        font-family: Arial, san-serif; 
+        font-size: 12px; }
+
+      a { text-decoration: none; }
+
+      #contenedor {
+        margin-bottom: 65px; }
+
+      .dates {
+        background-color: rgba(123,123,123,0.6);
+        border-radius: 6px;
+        -moz-border-radius: 6px;  
+        -webkit-border-radius: 6px;
+        font-style: bold; 
+        font-size: 120%;
+        margin: 5px auto;
+        padding: 5px;
+        text-align: center; 
+        width: 400px; 
+        right: 10px;
+        bottom: 5px;
+        position: fixed; }
+
+      .dates input[type=date] {
+        width: 136px;
+      }
+
+      article {
+        display: inline-block; }
+
+      .mermagbloque {
+        margin-top: 20px;
+        background-color: rgba(0,0,0,0); 
+        text-align: left;
+        padding: 5px; }
+
+      .mermabloque {
+        background-color: rgba(0,0,0,0); 
+        text-align: left;
+        padding: 5px; }
+
+      .botonera { 
+        background-color: rgba(0,0,0,0);
+        border-radius: 6px;
+        -moz-border-radius: 6px;  
+        -webkit-border-radius: 6px;     
+        font-size: 120%;
+        padding: 5px;
+        text-align: center; }
+
+      .mermagproceso { 
+        background-color: rgba(160,160,160,0.3); 
+        border-radius: 6px;    
+        -moz-border-radius: 6px;  
+        -webkit-border-radius: 6px;  
+        padding: 5px;
+        text-align: right;
+        min-width: 110px;
+        box-shadow: none;
+
+        -moz-transition: all 1s;
+        -webkit-transition: all 1s;
+        -o-transition: all 1s; }
+
+      .mermagproceso:hover {
+        background: black;
+        box-shadow: 3px 3px 1px #888;
+        color: #A0A0A0;
+
+        -moz-transition: all .1s;
+        -webkit-transition: all .1s;
+        -o-transition: all .1s; }
+
+      .mermaproceso { 
+        background-color: rgba(100,100,0,0.2); 
+        border-radius: 6px;    
+        -moz-border-radius: 6px;  
+        -webkit-border-radius: 6px;  
+        padding: 5px;
+        min-width: 110px;
+        text-align: right;
+
+        -moz-transition: all 1s;
+        -webkit-transition: all 1s;
+        -o-transition: all 1s; }
+
+      .mermaproceso:hover {
+        background: white;
+        box-shadow: 3px 3px .5px #888;
+
+        -moz-transition: all .1s;
+        -webkit-transition: all .1s;
+        -o-transition: all .1s; }
+
+      .mermagproceso label, .mermaproceso label {
+        font-size: 240%;
+        vertical-align: text-top; }
+
+    </style>  
+  </head>
+  <body><?
+
+  if ($_POST[dateinicial]) 
+  { $rptdateinicial = $_POST[dateinicial]; 
+  } else
+  { $rptdateinicial = date("Y-m-d"); }
+
+  if ($_POST[datefinal]) 
+  { $rptdatefinal = $_POST[datefinal]; 
+  } else
+  { $rptdatefinal = date("Y-m-d"); }
+  
+  if ($_POST[selectproducto]) { $rptproducto = $_POST[selectproducto]; }
+
+  if ($rptdateinicial != '' AND $rptdatefinal != '')
+  { // Impresión
+    $queryimpresioninside = $link->query("
+        SELECT SUM(prodloteope.longin) AS inside,
+             SUM(((prodloteope.longin/pdtodiseno.alto)*pdtodiseno.alpaso)) AS insidep,
+               SUM(prodloteope.longout) AS outside,
+             SUM(((prodloteope.longout/pdtodiseno.alto)*pdtodiseno.alpaso)) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion,
+               prodlote, 
+               prodloteope
+        WHERE (pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+              (prodlote.cdglote = prodloteope.cdglote AND
+               prodloteope.cdgoperacion = '20001') AND
+              (prodloteope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."')");
+
+    if ($queryimpresioninside->num_rows > 0)
+    { $regimpresioninside = $queryimpresioninside->fetch_object();
+        
+      $impresion_inside = $regimpresioninside->inside; 
+      $impresion_insidep = $regimpresioninside->insidep;
+      $impresion_outside = $regimpresioninside->outside; 
+      $impresion_outsidep = $regimpresioninside->outsidep;
+
+      $queryimpresionesinside = $link->query("
+        SELECT prodlote.cdgproducto,
+           SUM(prodloteope.longin) AS inside,
+         SUM(((prodloteope.longin/pdtodiseno.alto)*pdtodiseno.alpaso)) AS insidep,
+           SUM(prodloteope.longout) AS outside,
+         SUM(((prodloteope.longout/pdtodiseno.alto)*pdtodiseno.alpaso)) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion,
+               prodlote, 
+               prodloteope
+        WHERE (pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodlote.cdgproducto) AND
+              (prodlote.cdglote = prodloteope.cdglote AND                
+               prodloteope.cdgoperacion = '20001') AND
+              (prodloteope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."')
+      GROUP BY prodlote.cdgproducto");
+
+      if ($queryimpresionesinside->num_rows > 0)
+      { while ($regimpresioninside = $queryimpresionesinside->fetch_object())
+        { $impresiones_inside[$regimpresioninside->cdgproducto] = $regimpresioninside->inside; 
+          $impresiones_insidep[$regimpresioninside->cdgproducto] = $regimpresioninside->insidep;
+          $impresiones_outside[$regimpresioninside->cdgproducto] = $regimpresioninside->outside; 
+          $impresiones_outsidep[$regimpresioninside->cdgproducto] = $regimpresioninside->outsidep; }
+      }  
+    }
+
+    // Refile
+    $queryrefileinside = $link->query("
+      SELECT SUM(prodlote.longitud) AS inside,
+             SUM(((prodlote.longitud/pdtodiseno.alto)*pdtodiseno.alpaso)) AS insidep
+        FROM pdtodiseno,
+             pdtoimpresion,
+             prodlote,
+             prodbobina,
+             prodbobinaope
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = prodlote.cdgproducto AND
+            (prodlote.cdglote = prodbobina.cdglote AND
+             prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+             prodbobinaope.cdgoperacion = '30001') AND
+             prodbobinaope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'");
+
+    if ($queryrefileinside->num_rows > 0)
+    { $regrefileinside = $queryrefileinside->fetch_object();
+        
+      $refile_inside = $regrefileinside->inside; 
+      $refile_insidep = $regrefileinside->insidep;
+
+      $queryrefileoutside = $link->query("
+        SELECT SUM(prodbobina.longitud) AS outside,
+               SUM((prodbobina.longitud/pdtodiseno.alto)*pdtodiseno.alpaso) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion,
+               prodlote,
+               prodbobina,
+               prodbobinaope
+         WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodlote.cdgproducto AND
+              (prodlote.cdglote = prodbobina.cdglote AND
+               prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+               prodbobinaope.cdgoperacion = '30001') AND
+               prodbobinaope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'");
+
+      if ($queryrefileoutside->num_rows > 0)
+      { $regrefileoutside = $queryrefileoutside->fetch_object();
+        
+        $refile_outside = $regrefileoutside->outside; 
+        $refile_outsidep = $regrefileoutside->outsidep;
+
+        $queryrefilesinside = $link->query("
+          SELECT prodbobina.cdgproducto,
+                 SUM(prodlote.longitud) AS inside,
+                 SUM(((prodlote.longitud/pdtodiseno.alto)*pdtodiseno.alpaso)) AS insidep
+            FROM pdtodiseno,
+                 pdtoimpresion,
+                 prodlote,
+                 prodbobina,
+                 prodbobinaope
+           WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+                 pdtoimpresion.cdgimpresion = prodlote.cdgproducto AND
+                 prodlote.cdglote = prodbobina.cdglote AND
+                 prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                 prodbobinaope.cdgoperacion = '30001' AND
+                 prodbobinaope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'
+        GROUP BY prodbobina.cdgproducto");
+
+        if ($queryrefilesinside->num_rows > 0)
+        { while ($regrefilesinside = $queryrefilesinside->fetch_object())
+          { $refiles_inside[$regrefilesinside->cdgproducto] = $regrefilesinside->inside; 
+            $refiles_insidep[$regrefilesinside->cdgproducto] = $regrefilesinside->insidep; }
+
+          $queryrefilesoutside = $link->query("
+            SELECT prodbobina.cdgproducto,
+                   SUM(prodbobina.longitud) AS outside,
+                   SUM((prodbobina.longitud/pdtodiseno.alto)*pdtodiseno.alpaso) AS outsidep
+              FROM pdtodiseno,
+                   pdtoimpresion,
+                   prodlote,
+                   prodbobina,
+                   prodbobinaope
+             WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+                   pdtoimpresion.cdgimpresion = prodlote.cdgproducto AND
+                   prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.sttbobina != 'C' AND
+                   prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+                   prodbobinaope.cdgoperacion = '30001' AND
+                   prodbobinaope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'
+          GROUP BY prodlote.cdgproducto");
+
+          if ($queryrefilesoutside->num_rows > 0)
+          { while ($regrefilesoutside = $queryrefilesoutside->fetch_object())
+            { $refiles_outside[$regrefilesoutside->cdgproducto] = $regrefilesoutside->outside; 
+              $refiles_outsidep[$regrefilesoutside->cdgproducto] = $regrefilesoutside->outsidep; }
+          }
+        } 
+      }
+    }
+
+    // Fusión
+    $queryfusioninside = $link->query("
+      SELECT SUM(prodbobina.longitud) AS inside,
+             SUM(prodbobina.longitud/pdtodiseno.alto) AS insidep
+        FROM pdtodiseno,
+             pdtoimpresion,
+             prodbobina,
+             prodbobinaope
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = prodbobina.cdgproducto AND
+             prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+             prodbobinaope.cdgoperacion = '40001' AND
+             prodbobinaope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'");
+
+    if ($queryfusioninside->num_rows > 0)
+    { $regfusioninside = $queryfusioninside->fetch_object();
+        
+      $fusion_inside = $regfusioninside->inside; 
+      $fusion_insidep = $regfusioninside->insidep;
+
+      $queryfusionoutside = $link->query("
+        SELECT SUM(prodrollo.longitud) AS outside,
+               SUM(prodrollo.longitud/pdtodiseno.alto) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion,
+               prodbobina,
+               prodrollo,
+               prodrolloope
+         WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodbobina.cdgproducto AND
+               prodbobina.cdgbobina = prodrollo.cdgbobina AND
+               prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+               prodrolloope.cdgoperacion = '40001' AND
+               prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'");
+
+      if ($queryfusionoutside->num_rows > 0)
+      { $regfusionoutside = $queryfusionoutside->fetch_object();
+        
+        $fusion_outside = $regfusionoutside->outside; 
+        $fusion_outsidep = $regfusionoutside->outsidep;
+
+        $queryfusionesinside = $link->query("
+          SELECT prodbobina.cdgproducto,
+            SUM(prodbobina.longitud) AS inside,
+             SUM(prodbobina.longitud/pdtodiseno.alto) AS insidep
+        FROM pdtodiseno,
+             pdtoimpresion,
+             prodbobina,
+             prodbobinaope
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = prodbobina.cdgproducto AND
+             prodbobina.cdgbobina = prodbobinaope.cdgbobina AND
+             prodbobinaope.cdgoperacion = '40001' AND
+             prodbobinaope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'
+    GROUP BY prodbobina.cdgproducto");
+
+        if ($queryfusionesinside->num_rows > 0)
+        { while ($regfusionesinside = $queryfusionesinside->fetch_object())
+          { $fusiones_inside[$regfusionesinside->cdgproducto] = $regfusionesinside->inside; 
+            $fusiones_insidep[$regfusionesinside->cdgproducto] = $regfusionesinside->insidep; }
+
+          $queryfusionesoutside = $link->query("
+            SELECT prodrollo.cdgproducto,
+               SUM(prodrollo.longitud) AS outside,
+               SUM(prodrollo.longitud/pdtodiseno.alto) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion,
+               prodbobina,
+               prodrollo,
+               prodrolloope
+         WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodbobina.cdgproducto AND
+               prodbobina.cdgbobina = prodrollo.cdgbobina AND
+               prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+               prodrolloope.cdgoperacion = '40001' AND
+               prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'
+      GROUP BY prodrollo.cdgproducto");
+
+          if ($queryfusionesoutside->num_rows > 0)
+          { while ($regfusionesoutside = $queryfusionesoutside->fetch_object())
+            { $fusiones_outside[$regfusionesoutside->cdgproducto] = $regfusionesoutside->outside; 
+              $fusiones_outsidep[$regfusionesoutside->cdgproducto] = $regfusionesoutside->outsidep; }
+          }
+        }
+      }
+    }
+
+    // Revisión
+    $queryrevision = $link->query("
+      SELECT SUM(prodrolloope.longitud) AS inside,
+             SUM(prodrolloope.longitudfin) AS outside,
+             SUM(prodrolloope.longitud/pdtodiseno.alto) AS insidep,
+             SUM(prodrolloope.longitudfin/pdtodiseno.alto) AS outsidep
+        FROM pdtodiseno,
+             pdtoimpresion,
+             prodrollo,
+             prodrolloope
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = prodrollo.cdgproducto AND
+             prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+             prodrolloope.cdgoperacion = '40006' AND
+             prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'");
+
+    if ($queryrevision->num_rows > 0)
+    { $regrevision = $queryrevision->fetch_object();
+        
+      $revision_inside = $regrevision->inside; 
+      $revision_insidep = $regrevision->insidep;
+
+      $revision_outside = $regrevision->outside; 
+      $revision_outsidep = $regrevision->outsidep;      
+    
+      $queryrevisiones = $link->query("
+        SELECT prodrollo.cdgproducto,
+               SUM(prodrolloope.longitud) AS inside,
+               SUM(prodrolloope.longitudfin) AS outside,
+               SUM(prodrolloope.longitud/pdtodiseno.alto) AS insidep,
+               SUM(prodrolloope.longitudfin/pdtodiseno.alto) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion,
+               prodrollo,
+               prodrolloope
+         WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodrollo.cdgproducto AND
+               prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+               prodrolloope.cdgoperacion = '40006' AND
+               prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'
+      GROUP BY prodrollo.cdgproducto");
+
+      if ($queryrevisiones->num_rows > 0)
+      { while ($regrevisiones = $queryrevisiones->fetch_object())
+        { $revisiones_inside[$regrevisiones->cdgproducto] = $regrevisiones->inside; 
+          $revisiones_insidep[$regrevisiones->cdgproducto] = $regrevisiones->insidep;
+
+          $revisiones_outside[$regrevisiones->cdgproducto] = $regrevisiones->outside; 
+          $revisiones_outsidep[$regrevisiones->cdgproducto] = $regrevisiones->outsidep; }
+      }
+    }
+
+    // Corte
+    $querycorteinside = $link->query("
+      SELECT SUM(prodrolloope.longitud) AS inside,
+             SUM(prodrolloope.longitud/pdtodiseno.alto) AS insidep
+        FROM pdtodiseno,
+             pdtoimpresion,
+             prodrollo,
+             prodrolloope
+       WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+             pdtoimpresion.cdgimpresion = prodrollo.cdgproducto AND
+             prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+             prodrolloope.cdgoperacion = '50001' AND
+             prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'");
+
+    if ($querycorteinside->num_rows > 0)
+    { $regcorteinside = $querycorteinside->fetch_object();
+        
+      $corte_inside = $regcorteinside->inside; 
+      $corte_insidep = $regcorteinside->insidep;
+
+      $querycorteoutside = $link->query("
+        SELECT SUM(prodpaquete.cantidad) AS outsidep
+          FROM pdtodiseno,
+               pdtoimpresion, 
+               prodrollo, 
+               prodrolloope,
+               prodpaquete
+         WHERE prodpaquete.cdgrollo = prodrollo.cdgrollo AND
+               prodrolloope.cdgrollo = prodrollo.cdgrollo AND 
+               prodpaquete.sttpaquete != 'C' AND
+              (prodrolloope.cdgoperacion = '50001' AND 
+               pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+               pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto) AND
+               prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."'"); 
+
+      if ($querycorteoutside->num_rows > 0)
+      { $regcorteoutside = $querycorteoutside->fetch_object();
+
+        $corte_outside = $regcorteoutside->outside;
+        $corte_outsidep = $regcorteoutside->outsidep;
+
+        $querycortesinside = $link->query("
+          SELECT prodrollo.cdgproducto,
+             SUM(prodrolloope.longitud) AS inside,
+             SUM(prodrolloope.longitud/pdtodiseno.alto) AS insidep
+            FROM pdtodiseno,
+                 pdtoimpresion,
+                 prodrollo,
+                 prodrolloope
+           WHERE pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+                 pdtoimpresion.cdgimpresion = prodrollo.cdgproducto AND
+                 prodrollo.cdgrollo = prodrolloope.cdgrollo AND
+                 prodrolloope.cdgoperacion = '50001' AND
+                (prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."')
+        GROUP BY prodrollo.cdgproducto");
+
+        if ($querycortesinside->num_rows > 0)
+        { while ($regcortesinside = $querycortesinside->fetch_object())
+          { $cortes_inside[$regcortesinside->cdgproducto] = $regcortesinside->inside; 
+            $cortes_insidep[$regcortesinside->cdgproducto] = $regcortesinside->insidep; }
+
+          $querycortesoutside = $link->query("
+            SELECT prodpaquete.cdgproducto,
+               SUM(prodpaquete.cantidad) AS outsidep
+              FROM pdtodiseno,
+                   pdtoimpresion, 
+                   prodrollo, 
+                   prodrolloope,
+                   prodpaquete
+             WHERE prodpaquete.cdgrollo = prodrollo.cdgrollo AND
+                   prodrolloope.cdgrollo = prodrollo.cdgrollo AND 
+                   prodpaquete.sttpaquete != 'C' AND
+                  (prodrolloope.cdgoperacion = '50001' AND 
+                   pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno AND
+                   pdtoimpresion.cdgimpresion = prodpaquete.cdgproducto) AND
+                  (prodrolloope.fchoperacion BETWEEN '".$rptdateinicial."' AND '".$rptdatefinal."')
+          GROUP BY prodpaquete.cdgproducto"); 
+
+          if ($querycortesoutside->num_rows > 0)
+          { while ($regcortesoutside = $querycortesoutside->fetch_object())
+            { $cortes_outside[$regcortesoutside->cdgproducto] = $regcortesoutside->outside; 
+              $cortes_outsidep[$regcortesoutside->cdgproducto] = $regcortesoutside->outsidep; }
+          }
+        }
+      }
+    }
+  }
+
+  echo '
+    <div id="contenedor">
+      <form id="reporteador" method="POST" action="prodreporteador.php">
+        <section class="dates">
+          <article>
+            <label>Fecha inicial</label><br>
+            <input type="date" id="dateinicial" name="dateinicial" value="'.$rptdateinicial.'" required />
+          </article>
+          <article>
+            <label>Fecha final</label><br>
+            <input type="date" id="datefinal" name="datefinal" value="'.$rptdatefinal.'" required />
+          </article>
+          <article>
+            <input type="submit" id="filtrar" />
+          </article>
+        </section>
+
+        <section class="mermagbloque">
+          <article><label><b><a href="pdf/prodreporte.php?fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">Merma general</a></b></label></article><br>
+          <article class="mermagproceso">';
+
+  if ($impresion_outsidep > 0)
+  { echo '<a href="pdf/prodreporte.php?cdgoperacion=20001&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">Impresión</a><br>
+            <label>'.number_format((100-(($impresion_outsidep*100)/$impresion_insidep)),2,'.','').' %</label>'; }
+  else 
+  { echo 'Impresión<br>
+            <label>&nbsp;</label>'; }
+
+  echo '</article>
+          <article class="mermagproceso">';
+
+  if ($refile_outsidep > 0)
+  { echo '<a href="pdf/prodreporte.php?cdgoperacion=30001&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">Refilado</a><br>
+            <label>'.number_format((100-(($refile_outsidep*100)/$refile_insidep)),2,'.','').' %</label>'; }
+  else 
+  { echo 'Refilado<br><label>&nbsp;</label>'; }
+
+  echo '</article>
+          <article class="mermagproceso">';
+
+  if ($fusion_outsidep > 0)
+  { echo '<a href="pdf/prodreporte.php?cdgoperacion=40001&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">Fusión</a><br>
+            <label>'.number_format((100-(($fusion_outsidep*100)/$fusion_insidep)),2,'.','').' %</label>'; }
+  else 
+  { echo 'Fusión<br><label>&nbsp;</label>'; }
+
+  echo '</article>
+          <article class="mermagproceso">';
+
+  if ($revision_outsidep > 0)
+  { echo '<a href="pdf/prodreporte.php?cdgoperacion=40006&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">Revisión</a><br>
+            <label>'.number_format((100-(($revision_outsidep*100)/$revision_insidep)),2,'.','').' %</label>'; }
+  else 
+  { echo 'Revisión<br><label>&nbsp;</label>'; }
+
+  echo '</article>
+          <article class="mermagproceso">';
+
+  if ($corte_outsidep > 0)
+  { echo '<a href="pdf/prodreporte.php?cdgoperacion=50001&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">Corte</a><br>
+            <label>'.number_format((100-(($corte_outsidep*100)/$corte_insidep)),2,'.','').' %</label>'; }
+  else 
+  { echo 'Corte<br><label>&nbsp;</label>'; }
+
+  echo '</article>
+        </section>';
+
+  if ($rptdateinicial != '' AND $rptdatefinal != '')
+  { $queryprodimpresion = $link->query("
+      SELECT cdgimpresion AS cdgproducto,
+             impresion AS producto
+        FROM pdtoimpresion
+    ORDER BY impresion");
+
+    if ($queryprodimpresion->num_rows > 0)
+    { while ($regproducto = $queryprodimpresion->fetch_object())
+      { if ($fusiones_outsidep[$regproducto->cdgproducto] > 0)
+        { $fusiones_merma[$regproducto->cdgproducto] = number_format((100-(($fusiones_outsidep[$regproducto->cdgproducto]*100)/$fusiones_insidep[$regproducto->cdgproducto])),2,'.','').'%'; }
+        else { $fusiones_merma[$regproducto->cdgproducto] = '&nbsp;'; }
+
+        if ($revisiones_outsidep[$regproducto->cdgproducto] > 0)
+        { $revisiones_merma[$regproducto->cdgproducto] = number_format((100-(($revisiones_outsidep[$regproducto->cdgproducto]*100)/$revisiones_insidep[$regproducto->cdgproducto])),2,'.','').'%'; }
+        else { $revisiones_merma[$regproducto->cdgproducto] = '&nbsp;'; }
+
+        if ($cortes_outsidep[$regproducto->cdgproducto] > 0)
+        { $cortes_merma[$regproducto->cdgproducto] = number_format((100-(($cortes_outsidep[$regproducto->cdgproducto]*100)/$cortes_insidep[$regproducto->cdgproducto])),2,'.','').'%'; }
+        else { $cortes_merma[$regproducto->cdgproducto] = '&nbsp;'; }
+
+        if ($impresiones_outsidep[$regproducto->cdgproducto] > 0 OR $refiles_outsidep[$regproducto->cdgproducto] > 0 OR $fusiones_outsidep[$regproducto->cdgproducto] > 0 OR $revisiones_outsidep[$regproducto->cdgproducto] > 0 OR $cortes_outsidep[$regproducto->cdgproducto])
+        { echo '
+        <section class="mermabloque">
+          <article><label><i><a href="pdf/prodreporte.php?cdgproducto='.$regproducto->cdgproducto.'&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">'.$regproducto->producto.'</a></i></label></article><br>
+          <article class="mermaproceso">';
+
+          if ($impresiones_outsidep[$regproducto->cdgproducto] > 0)
+          { echo '
+            <a href="pdf/prodreporte.php?cdgproducto='.$regproducto->cdgproducto.'&cdgoperacion=20001&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">'.utf8_decode('Impresión').'</a><br>
+            <label>'.number_format((100-(($impresiones_outsidep[$regproducto->cdgproducto]*100)/$impresiones_insidep[$regproducto->cdgproducto])),2,'.','').'</label>%'; }
+          else 
+          { echo '
+            '.utf8_decode('Impresión').'<br>
+            <label>&nbsp;</label>'; }
+
+          echo '</article>
+            <article class="mermaproceso">';          
+          if ($refiles_outsidep[$regproducto->cdgproducto] > 0)
+          { echo '
+            <a href="pdf/prodreporte.php?cdgproducto='.$regproducto->cdgproducto.'&cdgoperacion=30001&fchini='.$rptdateinicial.'&fchfin='.$rptdatefinal.'" target="_blank">'.utf8_decode('Refilado').'</a><br>
+            <label>'.number_format((100-(($refiles_outsidep[$regproducto->cdgproducto]*100)/$refiles_insidep[$regproducto->cdgproducto])),2,'.','').'</label>%'; }
+          else 
+          { echo '
+            '.utf8_decode('Refilado').'<br>
+            <label>&nbsp;</label>'; }
+
+          echo '</article>
+          <article class="mermaproceso">'.utf8_decode('Fusión').'<br>
+            <label>'.$fusiones_merma[$regproducto->cdgproducto].'</label></article>
+          <article class="mermaproceso">'.utf8_decode('Revisión').'<br>
+            <label>'.$revisiones_merma[$regproducto->cdgproducto].'</label></article>
+          <article class="mermaproceso">'.utf8_decode('Corte').'<br>
+            <label>'.$cortes_merma[$regproducto->cdgproducto].'</label></article>
+        </section>'; }
+      }
+    }
+
+  }
+?>
+      </form>
+    </div>
+  </body>
+</html>

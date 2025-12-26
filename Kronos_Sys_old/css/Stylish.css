@@ -1,0 +1,137 @@
+*{
+	margin:0px;
+	padding:0px;
+	font-family:monospace;
+	font-size: 105%;
+	color:#000000;
+}
+
+body{
+
+}
+.polig{ 
+width:200px; 
+height:200px; 
+background:#444444; 
+font-family:arial; 
+font-weight:bold; 
+color:#EEEEEE; 
+
+} 
+
+/*menu lateral*/
+/*Para que agarre el css,cambia el nombre en la ruta del menu,o barra,y despues recarga el navegador,al quedarse sin css se cambia el
+nombre del archivo en la carpeta css*/
+
+div#barra-lateral{
+	position:fixed;
+	width:18%;
+	height:100%;
+	/*background-color:#D8D8D8;*/
+	/*background-image:url(../pictures/gray4.jpg);*/
+	background: rgba(138,138,138,1);
+background: -moz-linear-gradient(-45deg, rgba(138,138,138,1) 0%, rgba(173,173,173,1) 100%);
+background: -webkit-gradient(left top, right bottom, color-stop(0%, rgba(138,138,138,1)), color-stop(100%, rgba(173,173,173,1)));
+background: -webkit-linear-gradient(-45deg, rgba(138,138,138,1) 0%, rgba(173,173,173,1) 100%);
+background: -o-linear-gradient(-45deg, rgba(138,138,138,1) 0%, rgba(173,173,173,1) 100%);
+background: -ms-linear-gradient(-45deg, rgba(138,138,138,1) 0%, rgba(173,173,173,1) 100%);
+background: linear-gradient(135deg, rgba(138,138,138,1) 0%, rgba(173,173,173,1) 100%);
+filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#8a8a8a', endColorstr='#adadad', GradientType=1 );
+	overflow:hidden;
+	-webkit-transition:width 0.2s cubic-bezie r(.61,.01,.37,1);
+	border-right:solid;
+	border-color:gray;
+}
+
+/*div#barra-lateral:hover{
+	width:230px;
+}*/
+
+div#logo-menu{
+	width:85%;
+	height:8%;
+	margin:10px;
+	background-image:url(../pictures/logo-labro2.png);
+	background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+
+div#contenedor-logos-pri
+
+
+mero{
+	margin-top:10px;
+}
+
+div.contenedor-logos{
+	margin-top:15px;
+	margin-left:15px;
+	width:5.5%;
+	height:5.5%;
+  -webkit-transition-duration: 0.5s;
+  -o-transition-property: background-color, color, center;
+  -o-transition-duration: 1s;
+
+	
+}
+.imgmodulo
+{
+	width:1500%;
+}
+.imgmodulo:hover
+{
+	width:1500%;
+
+}
+div.contenedor-logos:hover
+{
+
+background-color: #0489B1;
+height:5%;
+width:6%;
+border-radius:0.40rem;
+
+  -webkit-transition-duration: 0.5s;
+  -o-transition-property: background-color, color, center;
+  -o-transition-duration: 1s;
+
+}
+div.contenedor-logos2{
+	margin-top:15px;
+	margin-left:15px;
+	width:210px;
+	height:40px;
+
+	
+}
+
+div.contenedor-logos2:hover
+{
+background-color: #0489B1;
+height:40px;
+width:210px;
+border-radius:0.20rem;
+}
+
+div.infoSesion{
+
+	 font:bold 100% Sansation; 
+	text-align: center;
+	margin-top:5%;
+	margin-left:18px;
+	padding-top:5%;
+	width:80%;
+	height:15%;
+	background-color:#A4B1B9;
+	  -webkit-box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+  -moz-box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+}
+
+
+}
+#combillo
+{
+	margin-left:1000px;
+}

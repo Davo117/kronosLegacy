@@ -1,0 +1,108 @@
+
+/***************/
+/* Layout Divs */
+/***************/
+
+#masthead{
+	position: absolute;
+	top: 2px;
+	left: 10px;
+	right: 10px;	
+}
+
+#pageNav{
+	float: left;
+	width:178px;
+	padding: 0px;
+	background-color: #F5f7f7;
+	border-right: 1px solid #cccccc;
+	border-bottom: 1px solid #cccccc;
+	font: small Verdana,sans-serif;
+}
+
+#content{
+	padding: 0px 10px 0px 0px;
+	margin:0px 0px 0px 178px;
+	border-left: 1px solid #ccd2d2;
+}
+
+#globalNav{
+position: relative;
+width: 100%;
+min-width: 640px;
+height: 32px;
+color: #cccccc;
+padding: 0px;
+margin: 0px;
+background-image: url(../img_sistema/glbnav_background.gif);
+}
+
+#globalNav img{
+	margin-bottom: -4px;
+ 
+}
+
+#gnl {
+	position: absolute;
+	top: 0px;
+	left:0px;
+}
+
+#gnr {
+	position: absolute;
+	top: 0px;
+	right:0px;
+}
+
+#globalLink{
+	position: absolute;
+	top: 6px;
+	height: 22px;
+	min-width: 640px;
+	padding: 0px;
+	margin: 0px;
+	left: 10px;
+	z-index: 100;
+}
+
+
+a.glink, a.glink:visited{
+  	font-size: smaller;
+  	color: #000000;
+	font-weight: bold;
+	margin: 0px;
+	padding: 2px 5px 4px 5px;
+	border-right: 1px solid #8FB8BC;
+}
+
+a.glink:hover{
+  	background-image: url(../img_sistema/glblnav_selected.gif);
+	text-decoration: none;
+}
+
+.skipLinks {display: none;}
+
+/************ subglobalNav styles **************/
+
+.subglobalNav{
+	position: absolute;
+	top: 18px;
+	left: 0px;
+	/*width: 100%;*/
+	min-width: 640px;
+	height: 20px;
+	padding: 16px 0px 8px 10px;
+	visibility: hidden;
+	color: #000000;
+}
+
+.subglobalNav a:link, .subglobalNav a:visited {
+	font-size: 80%;
+	color: #BBBBBB;
+}
+
+.subglobalNav a:hover{
+	color: #21536A;
+}
+
+

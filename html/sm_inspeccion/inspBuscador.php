@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />   
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_inspeccion();
+
+  if ($_SESSION['cdgusuario']) { ma1n(); }
+
+  if ($_POST['textCodigo'])
+  { $inspBuscador_codigo = $_POST['textCodigo']; }
+  elseif ($_GET['cdgnoop'])
+  { $inspBuscador_codigo = $_GET['cdgnoop']; }
+  elseif ($_GET['cdgproducto'])
+  { $inspBuscador_codigo = $_GET['cdgproducto']; }
+  elseif ($_GET['cdgempaque'])
+  { $inspBuscador_codigo = $_GET['cdgempaque']; }
+  elseif ($_GET['cdgembarque'])
+  { $inspBuscador_codigo = $_GET['cdgembarque']; }
+
+  echo '
+      <div class="bloque">
+        <form id="formulario" name="formulario" method="POST" action="inspBuscador.php"/>
+          <article class="subbloque">
+            <label class="modulo_nombre">Buscador</label>
+          </article>
+          <!--<a href="ayuda.php#Buscador">'.$_help_blue.'</a>-->
+
+         <section class="subbloque">
+            <label class="titulosubbloque">Tipo de código especifico</label><br><hr>
+
+            <article>
+              <label>Código</label><br>
+              <input type="text" id="textCodigo" name="textCodigo" value="'.$inspBuscador_codigo.'" placeholder="NoOP ó Codigo" required="required" autofocus />
+            </article>
+
+            <article>
+              <input type="radio" name="radio_tipocodigo" id="radio_tipocodigo" value="" /> <label>NoOP</label>
+            </article>
+
+            <article>
+              <input type="radio" name="radio_tipocodigo" id="radio_tipocodigo" value="1" /> <label>Empaque</label>
+            </article>
+
+            <article>
+              <input type="radio" name="radio_tipocodigo" id="radio_tipocodigo" value="2" /> <label>Embarque&nbsp;</label>
+            </article>
+            
+            <article>
+              <br>
+              <input type="submit" id="btn_buscar" name="btn_buscar" value="Buscar" />
+            </article>
+          </section>
+        </form>
+      </div>';
+
+//if ($inspBuscador_codigo != '')
+//{
+    if ($_POST['radio_tipocodigo'] == '' OR $_GET['cdgnoop'])
+    { // Catálogo de empleados
+      $rechEmpleadoSelect = $link->query("
+        SELECT idempleado,
+               empleado,
+               cdgempleado
+          FROM rechempleado");
+
+      while ($regRechEmpleado = $rechEmpleadoSelect->fetch_object())
+      { $inspBuscador_idempleado[$regRechEmpleado->cdgempleado] = $regRechEmpleado->idempleado;
+        $inspBuscador_empleado[$regRechEmpleado->cdgempleado] = $regRechEmpleado->empleado; }
+
+      // Catálogo de maquinas
+      $prodMaquinaSelect = $link->query("
+        SELECT idmaquina,
+               maquina,
+               cdgmaquina
+          FROM prodmaquina");
+
+      while ($regProdMaquina = $prodMaquinaSelect->fetch_object())
+      { $inspBuscador_idmaquina[$regProdMaquina->cdgmaquina] = $regProdMaquina->idmaquina;
+        $inspBuscador_maquina[$regProdMaquina->cdgmaquina] = $regProdMaquina->maquina; }
+      
+      // Buscar Lote de Banda de Seguridad (A)
+      $prodLoteSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop) AS noop,
+               prodlote.cdglote,
+               pdtobandap.bandap,
+               pdtobandap.cdgbandap
+          FROM prodlote,
+               pdtobandap
+        WHERE (prodlote.cdglote = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.serie,'.',prodlote.noop) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtobandap.cdgbandap)");
+
+      if ($prodLoteSelect->num_rows > 0)
+      { $regProdLote = $prodLoteSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdLote->noop;
+        $inspBuscador_producto = $regProdLote->bandap;
+        $inspBuscador_cdgproducto = $regProdLote->cdgbandap;
+        $inspBuscador_cdglote = $regProdLote->cdglote; }
+
+      // Buscar Bobina de Banda de Seguridad (B)
+      $prodBobinaSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina) AS noop,
+               prodbobina.cdgbobina,
+               prodlote.cdglote,
+               pdtobandap.bandap,
+               pdtobandap.cdgbandap
+          FROM prodbobina,
+               prodlote,
+               pdtobandap
+        WHERE (prodbobina.cdglote = prodlote.cdglote) AND
+              (prodbobina.cdgbobina = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtobandap.cdgbandap)");
+
+      if ($prodBobinaSelect->num_rows > 0)
+      { $regProdBobina = $prodBobinaSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdBobina->noop;
+        $inspBuscador_producto = $regProdBobina->bandap;
+        $inspBuscador_cdgproducto = $regProdBobina->cdgbandap;
+        $inspBuscador_cdglote = $regProdBobina->cdglote;
+        $inspBuscador_cdgbobina = $regProdBobina->cdgbobina; }
+
+      // Buscar Disco de Sello de Seguridad (A)
+      $prodDiscoSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',proddisco.disco) AS noop,
+               proddisco.cdgdisco,
+               prodlote.cdglote,
+               pdtobandap.bandap,
+               pdtobandap.cdgbandap
+          FROM proddisco,
+               prodlote,
+               pdtobandap
+        WHERE (proddisco.cdgbobina = prodlote.cdglote) AND
+              (proddisco.cdgdisco = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.noop,'-',proddisco.disco) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtobandap.cdgbandap)"); 
+
+      if ($prodDiscoSelect->num_rows > 0)
+      { $regProdDisco = $prodDiscoSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdDisco->noop;
+        $inspBuscador_producto = $regProdDisco->bandap;
+        $inspBuscador_cdgproducto = $regProdDisco->cdgbandap;
+        $inspBuscador_cdglote = $regProdDisco->cdglote;
+        $inspBuscador_cdgdisco = $regProdDisco->cdgdisco; }  
+
+      // Buscar Disco de Sello de Seguridad (B)
+      $prodDiscoSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',proddisco.disco) AS noop,
+               proddisco.cdgdisco,
+               prodbobina.cdgbobina,
+               prodlote.cdglote,
+               pdtobandap.bandap,
+               pdtobandap.cdgbandap
+          FROM proddisco,
+               prodbobina,
+               prodlote,
+               pdtobandap
+        WHERE (proddisco.cdgbobina = prodbobina.cdgbobina AND
+               prodbobina.cdglote = prodlote.cdglote) AND
+              (proddisco.cdgdisco = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',proddisco.disco) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtobandap.cdgbandap)"); 
+
+      if ($prodDiscoSelect->num_rows > 0)
+      { $regProdDisco = $prodDiscoSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdDisco->noop;
+        $inspBuscador_producto = $regProdDisco->bandap;
+        $inspBuscador_cdgproducto = $regProdDisco->cdgbandap;
+        $inspBuscador_cdglote = $regProdDisco->cdglote;
+        $inspBuscador_cdgbobina = $regProdDisco->cdgbobina;
+        $inspBuscador_cdgdisco = $regProdDisco->cdgdisco; }        
+
+      // Buscar Lote de Sello de Seguridad
+      $prodLoteSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop) AS noop,
+               prodlote.cdglote,
+               pdtoimpresion.impresion,
+               pdtoimpresion.cdgimpresion
+          FROM prodlote,
+               pdtoimpresion
+        WHERE (prodlote.cdglote = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.serie,'.',prodlote.noop) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtoimpresion.cdgimpresion)");
+
+      if ($prodLoteSelect->num_rows > 0)
+      { $regProdLote = $prodLoteSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdLote->noop;
+        $inspBuscador_producto = $regProdLote->impresion;
+        $inspBuscador_cdgproducto = $regProdLote->cdgimpresion;
+        $inspBuscador_cdglote = $regProdLote->cdglote; }
+
+      // Buscar Bobina de Sello de Seguridad
+      $prodBobinaSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina) AS noop,
+               prodbobina.cdgbobina,
+               prodlote.cdglote,
+               pdtoimpresion.impresion,
+               pdtoimpresion.cdgimpresion
+          FROM prodbobina,
+               prodlote,
+               pdtoimpresion
+        WHERE (prodbobina.cdglote = prodlote.cdglote) AND
+              (prodbobina.cdgbobina = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtoimpresion.cdgimpresion)");
+
+      if ($prodBobinaSelect->num_rows > 0)
+      { $regProdBobina = $prodBobinaSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdBobina->noop;
+        $inspBuscador_producto = $regProdBobina->impresion;
+        $inspBuscador_cdgproducto = $regProdBobina->cdgimpresion;
+        $inspBuscador_cdglote = $regProdBobina->cdglote;
+        $inspBuscador_cdgbobina = $regProdBobina->cdgbobina; }
+
+      // Buscar Rollo de Sello de Seguridad
+      $prodRolloSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+               prodrollo.cdgrollo,
+               prodrollo.cdgempaque,
+               prodbobina.cdgbobina,
+               prodlote.cdglote,
+               pdtoimpresion.impresion,
+               pdtoimpresion.cdgimpresion
+          FROM prodrollo,
+               prodbobina,
+               prodlote,
+               pdtoimpresion
+        WHERE (prodrollo.cdgbobina = prodbobina.cdgbobina AND
+               prodbobina.cdglote = prodlote.cdglote) AND
+              (prodrollo.cdgrollo = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtoimpresion.cdgimpresion)"); 
+
+      if ($prodRolloSelect->num_rows > 0)
+      { $regProdRollo = $prodRolloSelect->fetch_object();
+
+        $inspBuscador_noop = $regProdRollo->noop;
+        $inspBuscador_producto = $regProdRollo->impresion;
+        $inspBuscador_cdgproducto = $regProdRollo->cdgimpresion;
+        $inspBuscador_cdglote = $regProdRollo->cdglote;
+        $inspBuscador_cdgempaque = $regProdRollo->cdgempaque;
+        $inspBuscador_cdgbobina = $regProdRollo->cdgbobina;
+        $inspBuscador_cdgrollo = $regProdRollo->cdgrollo; }
+
+      // Buscar Paquete de Sello de Seguridad
+      $prodPaqueteSelect = $link->query("
+        SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo,'-',prodpaquete.paquete) AS noop,
+               prodpaquete.cdgpaquete,
+               prodpaquete.cdgempaque,
+               prodrollo.cdgrollo,
+               prodbobina.cdgbobina,
+               prodlote.cdglote,
+               pdtoimpresion.impresion,
+               pdtoimpresion.cdgimpresion
+          FROM prodpaquete,
+               prodrollo,
+               prodbobina,
+               prodlote,
+               pdtoimpresion
+        WHERE (prodpaquete.cdgrollo = prodrollo.cdgrollo AND
+               prodrollo.cdgbobina = prodbobina.cdgbobina AND
+               prodbobina.cdglote = prodlote.cdglote) AND
+              (prodpaquete.cdgpaquete = '".$inspBuscador_codigo."' OR 
+        CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo,'-',prodpaquete.paquete) = '".$inspBuscador_codigo."') AND
+              (prodlote.cdgproducto = pdtoimpresion.cdgimpresion)");
+
+      if ($prodPaqueteSelect->num_rows > 0)
+      { $regProdPaquete = $prodPaqueteSelect->fetch_object();
+
+        $inspBuscador_noop =  $regProdPaquete->noop;
+        $inspBuscador_producto = $regProdPaquete->impresion;
+        $inspBuscador_cdgproducto = $regProdPaquete->cdgimpresion;
+        $inspBuscador_cdglote = $regProdPaquete->cdglote;
+        $inspBuscador_cdgbobina = $regProdPaquete->cdgbobina;
+        $inspBuscador_cdgrollo = $regProdPaquete->cdgrollo;
+        $inspBuscador_cdgpaquete = $regProdPaquete->cdgpaquete;
+        $inspBuscador_cdgempaque = $regProdPaquete->cdgempaque; }
+      
+      // BUSCAR TODOS LOS EMPAQUES
+      // Buscar Empaque de Rollos
+      $item = 0;
+
+      $alptEmpaqueRSelect = $link->query("
+        SELECT alptempaque.cdgempaque,
+        CONCAT(alptempaque.tpoempaque,alptempaque.noempaque) AS empaque
+          FROM alptempaque,
+               alptempaquer
+         WHERE alptempaque.cdgempaque = alptempaquer.cdgempaque AND
+        SUBSTR(alptempaquer.cdgrollo,1,12) = '".$inspBuscador_codigo."'");
+      
+      if ($alptEmpaqueRSelect->num_rows > 0)
+      { while ($regAlptEmpaqueR = $alptEmpaqueRSelect->fetch_object())
+        { $item++;
+          $inspBuscador_empaque[$item] = $regAlptEmpaqueR->empaque;
+          $inspBuscador_cdgempaque[$item] = $regAlptEmpaqueR->cdgempaque; }
+      }
+
+      // Buscar Empaque de Paquetes
+      $alptEmpaquePSelect = $link->query("
+        SELECT alptempaque.cdgempaque,
+        CONCAT(alptempaque.tpoempaque,alptempaque.noempaque) AS empaque 
+          FROM alptempaque,
+               alptempaquep
+         WHERE alptempaque.cdgempaque = alptempaquep.cdgempaque AND
+        SUBSTR(alptempaquep.cdgpaquete,1,12) = '".$inspBuscador_codigo."'");
+
+      if ($alptEmpaquePSelect->num_rows > 0)
+      { while($regAlptEmpaqueP = $alptEmpaquePSelect->fetch_object())
+        { $item++;
+          $inspBuscador_empaque[$item] = $regAlptEmpaqueP->empaque;
+          $inspBuscador_cdgempaque[$item] = $regAlptEmpaqueP->cdgempaque; }
+      }
+
+      $nEmpaques = $item;
+
+      // BUSCAR OPERACIONES EN TODAS LAS TABLAS
+      // Buscar operaciones por lote
+      $item = 0;
+
+      $prodLoteOpeSelect = $link->query("
+        SELECT * FROM prodloteope
+         WHERE cdglote = '".$inspBuscador_cdglote."'");
+      
+      if ($prodLoteOpeSelect->num_rows > 0)
+      { while ($regProdLoteOpe = $prodLoteOpeSelect->fetch_object())
+        { $item++;
+
+          $inspBuscador_empleados[$item] = $regProdLoteOpe->cdgempleado; 
+          $inspBuscador_maquinas[$item] = $regProdLoteOpe->cdgmaquina;
+          $inspBuscador_registros[$item] = $regProdLoteOpe->fchmovimiento; }
+      }
+
+      // Buscar operaciones por Bobina
+      $prodBobinaOpeSelect = $link->query("
+        SELECT * FROM prodbobinaope
+         WHERE cdgbobina = '".$inspBuscador_cdgbobina."'");
+      
+      if ($prodBobinaOpeSelect->num_rows > 0)
+      { while ($regProdBobinaOpe = $prodBobinaOpeSelect->fetch_object())
+        { $item++;
+
+          $inspBuscador_empleados[$item] = $regProdBobinaOpe->cdgempleado;
+          $inspBuscador_maquinas[$item] = $regProdBobinaOpe->cdgmaquina; 
+          $inspBuscador_registros[$item] = $regProdBobinaOpe->fchmovimiento; }
+      }
+
+      // Buscar operaciones por Rollo
+      $prodRolloOpeSelect = $link->query("
+        SELECT * FROM prodrolloope
+         WHERE cdgrollo = '".$inspBuscador_cdgrollo."'");
+
+      if ($prodRolloOpeSelect->num_rows > 0)
+      { while ($regProdRolloOpe = $prodRolloOpeSelect->fetch_object())
+        { $item++;
+
+          $inspBuscador_empleados[$item] = $regProdRolloOpe->cdgempleado;
+          $inspBuscador_maquinas[$item] = $regProdRolloOpe->cdgmaquina;
+          $inspBuscador_registros[$item] = $regProdRolloOpe->fchmovimiento; 
+
+          if ($inspBuscador_referencia == '' AND $regProdRolloOpe->cdgoperacion == '40001')
+          { $inspBuscador_referencia = $regProdRolloOpe->cdgdisco; }
+        }  
+      }
+
+      // Buscar operaciones por Paquete
+      $prodPaqueteOpeSelect = $link->query("
+        SELECT * FROM prodpaqueteope
+         WHERE cdgpaquete = '".$inspBuscador_cdgpaquete."'");
+
+      if ($prodPaqueteOpeSelect->num_rows > 0)
+      { while ($regProdPaqueteOpe = $prodPaqueteOpeSelect->fetch_object())
+        { $item++;
+
+          $inspBuscador_empleados[$item] = $regProdPaqueteOpe->cdgempleado;
+          $inspBuscador_maquinas[$item] = $regProdPaqueteOpe->cdgmaquina;
+          $inspBuscador_registros[$item] = $regProdPaqueteOpe->fchmovimiento; }
+      }
+
+      // Buscar operaciones por Disco
+      $prodDiscoOpeSelect = $link->query("
+        SELECT * FROM proddiscoope
+         WHERE cdgdisco = '".$inspBuscador_cdgdisco."'");
+
+      if ($prodDiscoOpeSelect->num_rows > 0)
+      { while ($regProdDiscoOpe = $prodDiscoOpeSelect->fetch_object())
+        { $item++;
+
+          $inspBuscador_empleados[$item] = $regProdDiscoOpe->cdgempleado;
+          $inspBuscador_maquinas[$item] = $regProdDiscoOpe->cdgmaquina;
+          $inspBuscador_registros[$item] = $regProdDiscoOpe->fchmovimiento; }
+      }
+
+      $nOperaciones = $item;
+
+      if ($nOperaciones > 0)
+      { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Operaciones realizadas</label>
+        </article>
+        <label>[<b>'.$nOperaciones.'</b>] Registros encontrados</label>
+        
+        <section class="subbloque">
+          <table align="center">
+            <tr align="left"><th><label>Operador</label></th>
+              <th><label>Equipo</label></th>
+              <th><label>Fecha y hora</label></th></tr>
+            <tr><td colspan="5"><hr></td></tr>';
+
+        for ($item=1; $item<=$nOperaciones; $item++)
+        { if ($idEmpleado != $inspBuscador_idempleado[$inspBuscador_empleados[$item]] OR $idMaquina != $inspBuscador_idmaquina[$inspBuscador_maquinas[$item]])
+          { echo '
+            <tr align="center">
+              <td align="left"><b>'.$inspBuscador_idempleado[$inspBuscador_empleados[$item]].'</b> 
+                '.$inspBuscador_empleado[$inspBuscador_empleados[$item]].'</td>
+              <td align="left"><b>'.$inspBuscador_idmaquina[$inspBuscador_maquinas[$item]].'</b> 
+                '.$inspBuscador_maquina[$inspBuscador_maquinas[$item]].'</td>
+              <td align="right"><i>'.$inspBuscador_registros[$item].'</i></td></tr>'; }
+
+          $idEmpleado = $inspBuscador_idempleado[$inspBuscador_empleados[$item]];
+          $idMaquina = $inspBuscador_idmaquina[$inspBuscador_maquinas[$item]]; }
+
+        echo '
+          </table><hr>
+
+          <article>
+             <label class="modulo_listado">NoOP <b>'.$inspBuscador_noop.'</b><br>             
+             Producto <b>'.$inspBuscador_producto.'</b><br>
+             Empaque <b>';
+
+        for ($item=1; $item<=$nEmpaques; $item++)
+        { echo '<a href="inspBuscador.php?cdgempaque='.$inspBuscador_cdgempaque[$item].'">'.$inspBuscador_empaque[$item].'</a> '; }
+
+        echo '</b><br/>
+             <i>Banda de Seguridad</i> <b><a href="inspBuscador.php?cdgnoop='.$inspBuscador_referencia.'">'.$inspBuscador_referencia.'</a></b>
+          </article>
+        </section>
+      </div>'; }
+    }
+
+    if ($_POST['radio_tipocodigo'] == '1' OR $_GET['cdgempaque'])
+    { // Buscar contenido del empaque
+      $alptEmpaqueSelect = $link->query("
+        SELECT alptempaque.noempaque,
+               alptempaque.tpoempaque,
+               pdtoimpresion.impresion,
+               alptempaque.cdgproducto,
+               alptempaque.fchempaque,
+               alptempaque.cdgembarque,
+               alptempaque.cdgempleado
+          FROM alptempaque, 
+               pdtoimpresion
+         WHERE alptempaque.cdgempaque = '".$inspBuscador_codigo."' AND
+               alptempaque.cdgproducto = pdtoimpresion.cdgimpresion");
+
+      if ($alptEmpaqueSelect->num_rows > 0)
+      { $regAlptEmpaque = $alptEmpaqueSelect->fetch_object();
+
+        $inspBuscador_noempaque = $regAlptEmpaque->noempaque; 
+        $inspBuscador_tpoempaque = $regAlptEmpaque->tpoempaque;
+        $inspBuscador_producto = $regAlptEmpaque->impresion;
+        $inspBuscador_cdgproducto = $regAlptEmpaque->cdgproducto;
+        $inspBuscador_fchempaque = $regAlptEmpaque->fchempaque;
+        $inspBuscador_cdgembarque = $regAlptEmpaque->cdgembarque;
+        $inspBuscador_cdgempleado = $regAlptEmpaque->cdgempleado;
+
+        if ($inspBuscador_tpoempaque == 'C')
+        { $alptEmpaqueDSelect = $link->query("
+            SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo,'-',prodpaquete.paquete) AS noop,
+                   alptempaquep.cantidad,
+                   alptempaquep.dev,
+                   alptempaquep.cdgdev,
+                   alptempaquep.cdgpaquete AS cdgelemento
+              FROM alptempaquep,
+                   prodpaquete,
+                   prodrollo,
+                   prodbobina,
+                   prodlote
+             WHERE alptempaquep.cdgempaque = '".$inspBuscador_codigo."' AND
+                   alptempaquep.cdgpaquete = prodpaquete.cdgpaquete AND
+                   prodpaquete.cdgrollo = prodrollo.cdgrollo AND
+                   prodrollo.cdgbobina = prodbobina.cdgbobina AND
+                   prodbobina.cdglote = prodlote.cdglote"); }
+
+        if ($inspBuscador_tpoempaque == 'Q')
+        { $alptEmpaqueDSelect = $link->query("
+            SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+                   alptempaquer.nocontrol,
+                   alptempaquer.cantidad,
+                   alptempaquer.dev,
+                   alptempaquer.cdgdev,
+                   alptempaquer.cdgrollo AS cdgelemento
+              FROM alptempaquer,
+                   prodrollo,
+                   prodbobina,
+                   prodlote
+             WHERE alptempaquer.cdgempaque = '".$inspBuscador_codigo."' AND
+                   alptempaquer.cdgrollo = prodrollo.cdgrollo AND
+                   prodrollo.cdgbobina = prodbobina.cdgbobina AND
+                   prodbobina.cdglote = prodlote.cdglote"); }
+
+        if ($alptEmpaqueDSelect->num_rows > 0)
+        { $item = 0;
+          while ($regAlptEmpaqueD = $alptEmpaqueDSelect->fetch_object())
+          { $item++;
+
+            $inspBuscador_noop[$item] = $regAlptEmpaqueD->noop;
+            $inspBuscador_nocontrol[$item] = $regAlptEmpaqueD->nocontrol;
+            $inspBuscador_cdgelemento[$item] = $regAlptEmpaqueD->cdgelemento;
+          }
+
+          $nElementos = $alptEmpaqueDSelect->num_rows;
+        }
+      }
+
+      if ($nElementos > 0)
+      { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Contenido del empaque</label>
+        </article>
+        <label>[<b>'.$nElementos.'</b>] Elementos encontrados</label>
+        
+        <section class="subbloque">';
+
+        for ($item=1; $item<=$nElementos; $item++)
+        { echo '
+          <article>
+            <label><b><a href="inspBuscador.php?cdgnoop='.$inspBuscador_cdgelemento[$item].'">'.$inspBuscador_noop[$item].'</a></b><br>
+              <i>'.$inspBuscador_cdgelemento[$item].'</i><br>
+              '.$inspBuscador_nocontrol[$item].'</label>
+          </article>'; } 
+
+        echo '<hr>
+
+          <article>
+             <label class="modulo_listado">Producto <b><a href="inspBuscador.php?cdgproducto='.$inspBuscador_cdgproducto.'">'.$inspBuscador_producto.'</a></b><br>
+               Empaque <b>'.$inspBuscador_tpoempaque.$inspBuscador_noempaque.'</b><br>
+               Embarque <b><a href="inspBuscador.php?cdgembarque='.$inspBuscador_cdgembarque.'">'.$inspBuscador_cdgembarque.'</a></b>
+          </article>
+        </section>
+      </div>'; }
+    }
+
+    if ($_POST['radio_tipocodigo'] == '2' OR $_GET['cdgembarque'])
+    { // Buscar contenido del embarque
+      $vntsEmbarqueSelect = $link->query("
+        SELECT vntsembarque.cdgembarque,
+               vntssucursal.sucursal,
+               vntsembarque.cdgsucursal,
+               vntsembarque.cdglote,
+               pdtoimpresion.impresion,
+               vntsembarque.cdgproducto,
+               vntsembarque.fchembarque
+          FROM vntsembarque,
+               vntssucursal,
+               pdtoimpresion
+         WHERE vntsembarque.cdgembarque = '".$inspBuscador_codigo."' AND
+               vntsembarque.cdgsucursal = vntssucursal.cdgsucursal AND
+               vntsembarque.cdgproducto = pdtoimpresion.cdgimpresion");
+
+      if ($vntsEmbarqueSelect->num_rows > 0)
+      { $regVntsEmbarque = $vntsEmbarqueSelect->fetch_object();
+
+        $inspBuscador_cdgembarque = $regVntsEmbarque->cdgembarque;
+        $inspBuscador_sucursal = $regVntsEmbarque->sucursal;
+        $inspBuscador_cdgsucursal = $regVntsEmbarque->cdgsucursal;
+        $inspBuscador_cdglote = $regVntsEmbarque->cdglote;
+        $inspBuscador_producto = $regVntsEmbarque->impresion;
+        $inspBuscador_cdgproducto = $regVntsEmbarque->cdgproducto;
+        $inspBuscador_fchembarque = $regVntsEmbarque->fchembarque;
+
+        $alptEmpaqueSelect = $link->query("
+          SELECT * FROM alptempaque
+           WHERE alptempaque.cdgembarque = '".$inspBuscador_codigo."'");
+
+        if ($alptEmpaqueSelect->num_rows > 0)
+        { $item = 0;
+          while ($regAlptEmpaque = $alptEmpaqueSelect->fetch_object())
+          { $item++;
+
+            $inspBuscador_noempaque[$item] = $regAlptEmpaque->noempaque;
+            $inspBuscador_tpoempaque[$item] = $regAlptEmpaque->tpoempaque;
+            $inspBuscador_cdgempaque[$item] = $regAlptEmpaque->cdgempaque; }
+
+          $nEmpaques = $alptEmpaqueSelect->num_rows;
+        }
+      }
+
+      if ($nEmpaques > 0)
+      { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Contenido del embarque</label>
+        </article>
+        <label>[<b>'.$nEmpaques.'</b>] Empaques encontrados</label>
+        
+        <section class="subbloque">';
+
+        for ($item=1; $item<=$nEmpaques; $item++)
+        { echo '
+          <article>
+            <label><b><a href="inspBuscador.php?cdgempaque='.$inspBuscador_cdgempaque[$item].'">'.$inspBuscador_tpoempaque[$item].''.$inspBuscador_noempaque[$item].'</a></b></label>
+          </article>'; } 
+
+        echo '<hr>
+
+          <article>
+             <label class="modulo_listado">Producto <b><a href="inspBuscador.php?cdgproducto='.$inspBuscador_cdgproducto.'">'.$inspBuscador_producto.'</a></b><br>
+               Destino <b><a href="../sm_ventas/vntsSucursal.php?cdgsucursal='.$inspBuscador_cdgsucursal.'">'.$inspBuscador_sucursal.'</a></b>
+          </article>
+        </section>
+      </div>'; }
+    }
+//}
+?>
+
+    </div>
+  </body>
+</html>

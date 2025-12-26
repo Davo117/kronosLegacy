@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Empaque de rollos</title> 
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" media="screen" />
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_empaque();
+
+  $sistModulo_cdgmodulo = '80010';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_POST['textusername'] AND $_POST['textpassword']) { val1dat3($_POST['textusername'], $_POST['textpassword']); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); 
+    } else 
+    { echo '
+      <div id="loginform">
+        <form id="login" action="alptRollo.php" method="POST">';
+
+      log1n();
+
+      echo '
+        </form>
+      </div>
+    </div>
+  </body>
+</html>'; 
+
+      exit; }
+
+    // Remover un código del arreglo de códigos
+    if ($_GET['cdgrollo'])
+    { $alptRollo_codigo = $_SESSION['empaque'];
+      $nRollos = count($alptRollo_codigo);
+
+      for ($item=1; $item<=$nRollos; $item++)
+      { if ($alptRollo_codigo[$item] != $_GET['cdgrollo'])
+        { $newitem++;
+          $newempaque_codigo[$newitem] = $alptRollo_codigo[$item]; }
+      }
+
+      $_SESSION['empaque'] = $newempaque_codigo; }
+
+    // Salvar 
+    if ($_POST['btn_salvar'])
+    { if (strtoupper($_POST['text_rollo']) == 'CLOSE' AND $_SESSION['cdgproducto'] != '')
+      { // Crea documento, bloquea los codigos y agregalos 
+        $alptRollo_newempaque = true;
+
+        $alptRollo_subcdgempaque = date('ymd');
+        for ($id_indice = 1; $id_indice <= 9999; $id_indice++) 
+        { $alptRollo_cdgempaque = $alptRollo_subcdgempaque.str_pad($id_indice,4,'0',STR_PAD_LEFT);
+        
+          $link = conectar();
+          $prodDocumentoSelect = $link->query("
+            SELECT * FROM alptempaque
+             WHERE cdgempaque = '".$alptRollo_cdgempaque."'");
+            
+          if ($prodDocumentoSelect->num_rows == 0)
+          { $_SESSION['cdgempaque'] = $alptRollo_cdgempaque;
+
+            $link = conectar();
+            $alptEmpaqueSelect = $link->query("
+              SELECT MAX(noempaque) AS noempaque
+                FROM alptempaque
+               WHERE cdgproducto = '".$_SESSION['cdgproducto']."' AND
+                     tpoempaque = 'Q'");
+
+            if ($alptEmpaqueSelect->num_rows > 0)
+            { $regAlptEmpaque = $alptEmpaqueSelect->fetch_object();
+
+              $alptRollo_noempaque = $regAlptEmpaque->noempaque;
+
+              $alptRollo_noempaque = $alptRollo_noempaque+1;
+              /*if ($regAlptEmpaque->noempaque == $regAlptEmpaque->noempaques)
+              { $alptRollo_noempaque = $regAlptEmpaque->noempaque+1; }
+              else
+              { for ($item = 1; $item <= $regAlptEmpaque->noempaque; $item++)
+                { $alptEmpaqueSelect = $link->query("
+                    SELECT * FROM alptempaque
+                     WHERE cdgproducto = '".$_SESSION['cdgproducto']."' AND
+                           tpoempaque = 'Q' AND 
+                           noempaque = '".$item."'");
+
+                  if ($alptEmpaqueSelect->num_rows > 0)
+                  { // Este número de empaqie ya existe 
+                  } else
+                  { $alptRollo_noempaque = $item;
+                    break; }
+                }
+              } //*/
+
+              $msg_alert .= "El NoEmpaque sera Q".$alptRollo_noempaque; 
+            } else
+            { $msg_alert .= "El NoEmpaque no ha sido iniciado."; 
+              $alptRollo_noempaque = 1; } 
+
+            $link = conectar();
+            $link->query("
+              INSERT INTO alptempaque
+                (cdgempaque, cdgproducto, noempaque, tpoempaque, cdgempleado, fchempaque)
+              VALUES
+                ('".$alptRollo_cdgempaque."', '".$_SESSION['cdgproducto']."', '".$alptRollo_noempaque."', 'Q', '".$_SESSION['cdgusuario']."', NOW())");
+                
+            if ($link->affected_rows > 0)
+            { $alptRollo_codigo = $_SESSION['empaque'];
+              $alptRollo_cantidad = $_SESSION['cantidad'];
+              $nRollos = count($alptRollo_codigo);
+
+              if ($nRollos > 0)
+              { for ($item=1; $item<=$nRollos; $item++)
+                { $link = conectar();
+                  $link->query("
+                    UPDATE prodrollo 
+                       SET cdgempaque = '".$alptRollo_cdgempaque."'
+                     WHERE cdgrollo = '".$alptRollo_codigo[$item]."' AND
+                           cdgempaque = ''");
+
+                  if ($link->affected_rows == 0)
+                  { $alptRollo_newempaque = false; 
+                    $msg_alert .= "\n El Rollo ".$alptRollo_codigo[$item]." NO fue agregado.";
+                  } else
+                  { $msg_alert .= "\n El Rollo ".$alptRollo_codigo[$item]." FUE agregado."; }
+                }
+
+                if ($alptRollo_newempaque == true)
+                { for ($item=1; $item<=$nRollos; $item++)
+                  { $link = conectar();
+                    $alptEmpaqueRSelect = $link->query("
+                      SELECT MAX(nocontrol) AS nocontrol
+                        FROM alptempaquer
+                       WHERE cdgproducto = '".$_SESSION['cdgproducto']."'");
+
+                    if ($alptEmpaqueRSelect->num_rows > 0)
+                    { $regAlptEmpaqueR = $alptEmpaqueRSelect->fetch_object();
+                      
+                      $alptRollo_nocontrol = $regAlptEmpaqueR->nocontrol;
+
+                      $alptRollo_nocontrol = $alptRollo_nocontrol+1;
+                    /*
+                      if ($regAlptEmpaqueR->nocontrol == $regAlptEmpaqueR->nocontrols)
+                      { $alptRollo_nocontrol = $regAlptEmpaqueR->nocontrol+1; }
+                      else
+                      { for ($subItem = 1; $subItem <= $regAlptEmpaqueR->nocontrol; $subItem++)
+                        { $alptEmpaqueSelect = $link->query("
+                            SELECT * FROM alptempaquer
+                             WHERE cdgproducto = '".$_SESSION['cdgproducto']."' AND
+                                   nocontrol = '".$subItem."'");
+
+                          if ($alptEmpaqueSelect->num_rows > 0)
+                          { // Este número de empaque ya existe 
+                          } else
+                          { $alptRollo_nocontrol = $subItem;
+                            break; }
+                        }
+                      } //*/
+                    } else
+                    { $msg_alert .= "El NoControl no ha sido iniciado."; 
+                      $alptRollo_nocontrol = 1; } 
+
+                    $link = conectar();
+                    $link->query("
+                      INSERT INTO alptempaquer
+                        (cdgempaque, cdgproducto, nocontrol, cantidad, cdgrollo)
+                      VALUES
+                        ('".$alptRollo_cdgempaque."', '".$_SESSION['cdgproducto']."', '".$alptRollo_nocontrol."', '".$alptRollo_cantidad[$item]."', '".$alptRollo_codigo[$item]."')");
+
+                    if ($link->affected_rows == 0)
+                    { $alptRollo_newempaque = false; 
+                      $msg_alert .= "\n El Rollo ".$alptRollo_codigo[$item]." NO fue insertado en el empaque.";
+                    } else
+                    { $msg_alert .= "\n El Rollo ".$alptRollo_codigo[$item]." FUE insertado en el empaque."; }                    
+                  }
+                  
+                  $link = conectar();
+                  $link->query("
+                    UPDATE prodrollo 
+                       SET sttrollo = '9',
+                           fchmovimiento = NOW()
+                     WHERE cdgempaque = '".$alptRollo_cdgempaque."' AND
+                           sttrollo = '6'");
+
+                    $msg_alert .= "\n Empaque ".$alptRollo_cdgempaque." de Rollos Generado.";
+                } else
+                { $link = conectar();
+                  $link->query("
+                    UPDATE prodrollo 
+                       SET cdgempaque = ''
+                     WHERE cdgempaque = '".$alptRollo_cdgempaque."'"); 
+
+                  $link = conectar();
+                  $link->query("
+                    DELETE FROM alptempaque                    
+                     WHERE cdgempaque = '".$alptRollo_cdgempaque."' AND 
+                           sttempaque = '1'"); 
+
+                  $msg_alert .= "\n El empaque NO pudo ser generado, por que alguno de los rollos ya es parte de otro empaque."; 
+                }
+              } else
+              { $msg_alert .= "\n El empaque NO pudo ser generado, no contiene rollos."; }               
+            } else
+            { $msg_alert .= "\n El empaque NO pudo ser generado, intentalo nuevamente."; } 
+            
+            $id_indice = 10000; }
+        }
+
+        unset($_SESSION['cdgproducto']);
+        unset($_SESSION['corte']);
+        unset($_SESSION['empaque']);
+        unset($_SESSION['cantidad']);
+      } else
+      { $alptRollo_cdgrollo = $_POST['text_rollo'];
+        $alptRollo_codigo = $_SESSION['empaque'];          
+        $alptRollo_cantidad = $_SESSION['cantidad'];
+        $nRollos = count($alptRollo_codigo);
+
+        $link = conectar();
+        $prodRolloSelect = $link->query("
+          SELECT CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+                 prodrollo.longitud,
+                 prodrollo.amplitud,
+                 prodrollo.peso,
+                 prodrollo.cdgrollo,
+                 prodrollo.sttrollo,
+                 pdtoimpresion.alto,
+                 pdtojuego.altura,
+                 pdtoimpresion.cdgimpresion
+            FROM prodlote,
+                 prodloteope,
+                 prodbobina,
+                 prodrollo,
+                 pdtodiseno,
+                 pdtoimpresion,
+                 pdtojuego
+          WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                 prodbobina.cdgbobina = prodrollo.cdgbobina) AND
+                (prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgoperacion = '20001') AND
+                (pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno AND
+                 pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion) AND
+                (prodrollo.cdgrollo = '".$alptRollo_cdgrollo."' AND 
+                 prodrollo.cdgempaque = '' AND
+                 prodrollo.cdgproducto = pdtoimpresion.cdgimpresion)");
+
+        if ($prodRolloSelect->num_rows > 0)
+        { $regProdRollo = $prodRolloSelect->fetch_object();
+          
+          $alptRollo_noop = $regProdRollo->noop;
+          $alptRollo_longitud = $regProdRollo->longitud;
+          $alptRollo_peso = $regProdRollo->peso;
+          $alptRollo_sttrollo = $regProdRollo->sttrollo;
+          $alptRollo_corte = $regProdRollo->altura;
+          $alptRollo_cdgimpresion = $regProdRollo->cdgimpresion;            
+
+          if ($nRollos == 0)
+          { $_SESSION['cdgproducto'] = $alptRollo_cdgimpresion; } 
+
+          if ($_SESSION['cdgproducto'] == $alptRollo_cdgimpresion) 
+          { if ($alptRollo_sttrollo == 1)
+            { $msg_alert .= 'Rollo NO LIBERADO.'; 
+            } else
+            { $msg_alert .= 'Loading... '.$alptRollo_cdgimpresion;
+
+              if ($alptRollo_sttrollo == 6 AND $alptRollo_peso > 0)
+              { $msg_alert .= 'Loading... '.$alptRollo_noop.' '.$alptRollo_cdgimpresion;
+
+                $alptRollo_update = true;
+                for ($item=1; $item<=$nRollos; $item++)
+                { if ($alptRollo_codigo[$item] == $alptRollo_cdgrollo)
+                  { $alptRollo_update = false; }
+                }
+
+                if ($alptRollo_update == true)
+                { $item = $nRollos+1;
+
+                  $alptRollo_codigo[$item] = $alptRollo_cdgrollo;    
+                  $alptRollo_cantidad[$item] = ($alptRollo_longitud/$alptRollo_corte);
+
+                  $_SESSION['empaque'] = $alptRollo_codigo;
+                  $_SESSION['cantidad'] = $alptRollo_cantidad;
+                  $msg_alert = 'Rollo '.$alptRollo_noop.' agregado exitosamente.'; 
+
+                  $_SESSION['empaque'] = $alptRollo_codigo; 
+                } else
+                { $msg_alert .= 'Rollo '.$alptRollo_noop.' ya se encuentra agregado.'; }
+              } else
+              { if ($alptRollo_sttrollo == 9)
+                { $msg_alert .= 'Rollo '.$alptRollo_noop.' EMPACADO.'; } 
+              }
+            }
+          } else
+          { $msg_alert .= 'Rollo incompatible con el contendido actual.'; } 
+        } else 
+        { $msg_alert .= 'Rollo no encontrado, es posible que ya sea parte de algun empaque.'; }
+      }
+    }
+
+    $alptRollo_codigo = $_SESSION['empaque'];
+    $nRollos = count($alptRollo_codigo);
+
+    echo '
+      <div class="bloque">
+        <form id="formulario" name="formulario" method="POST" action="alptRollo.php">
+          <article class="subbloque">
+            <label class="modulo_nombre">Empaque de rollos</label>
+          </article>
+          <a href="ayuda.php#EmpaqueRollo"><img id="imagen_ayuda" src="/img_sistema/help_blue.png"/></a>
+
+          <section class="subbloque">
+            <a href="pdf/alptEmpaqueBCE.php?cdgempaque='.$_SESSION['cdgempaque'].'" target="_blank"><img class="imagen_derecha" src="/img_sistema/barcode.png"/></a>
+
+            <article>
+              <label>Rollo</label><br/>
+              <input type="text" id="text_rollo" name="text_rollo" value="'.$prodRollo_cdgrollo.'" autofocus required/>
+            </article>
+
+            <article>
+              <br>
+              <input type="submit" id="btn_salvar" name="btn_salvar" value="Salvar" />
+            </article>
+          </section>
+        </form>
+      </div>';
+        
+    if ($nRollos > 0)
+    { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Contenido del empaque</label>          
+        </article>
+        <label>[<b>'.$nRollos.'</b>] rollos agregados</label>';
+
+      for ($item=1; $item<=$nRollos; $item++)
+      { echo '
+        <section class="listado">';
+
+          $alptEmpaqueRolloSelect = $link->query("
+            SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+                   prodrollo.longitud,
+                   prodrollo.amplitud,
+                   prodrollo.peso,
+                   prodrollo.cdgrollo,
+                   pdtojuego.altura
+              FROM prodlote,
+                   prodloteope,
+                   prodbobina,
+                   prodrollo,
+                   pdtoimpresion,
+                   pdtodiseno,
+                   pdtojuego
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                  (prodlote.cdglote = prodloteope.cdglote AND
+                   prodloteope.cdgoperacion = '10001') AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = '".$alptRollo_codigo[$item]."' AND
+                   prodrollo.cdgproducto = pdtoimpresion.cdgimpresion AND
+                   pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno AND
+                   pdtoimpresion.cdgimpresion = pdtojuego.cdgimpresion");
+
+        if ($alptEmpaqueRolloSelect > 0)
+        { $regAlptEmpaque = $alptEmpaqueRolloSelect->fetch_object();
+          echo '
+          <article style="vertical-align:top">
+            <a href="alptRollo.php?cdgrollo='.$regAlptEmpaque->cdgrollo.'&proceso=delete">'.$_recycle_bin.'</a>
+          </article>
+
+          <article align="right">
+            <label><b>'.$regAlptEmpaque->noop.'</b></label><br/>
+            <label><b>'.number_format($regAlptEmpaque->longitud,3).'</b></label><br/>
+            <label><b>'.number_format($regAlptEmpaque->peso,3).'</b></label><br/>
+            <label><b>'.number_format(($regAlptEmpaque->longitud/$regAlptEmpaque->altura),3).'</b></label>
+          </article>
+
+          <article>
+            <label>NoOP</label><br/>
+            <label>Longitud <i>mtrs</i></label><br/>
+            <label>Peso <i>kgs</i></label><br/>
+            <label>Piezas aproximadas <i>mlls</i></label>
+          </article>';
+
+          $alptRollo_suma += number_format(($regAlptEmpaque->longitud/$regAlptEmpaque->altura),3);
+        } else
+        { echo '
+          <article>
+            <b>Error: <b>'.$alptRollo_codigo[$item].'</b>
+          </article>'; }
+
+        echo '
+        </section>
+
+        <section class="subbloque">
+          <article>
+            <label>Suma <b>'.$alptRollo_suma.'</b></article>
+          </article>
+        </section>'; }
+
+      echo '
+      </div>'; }
+
+    if ($msg_alert != '')
+    { echo '
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+
+  } else
+  { echo '
+      <div><h1>Módulo no encontrado o bloqueado.</h1></div>'; }
+?>
+
+    </div>
+  </body>
+</html>

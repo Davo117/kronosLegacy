@@ -1,0 +1,166 @@
+<?php
+  require('../../fpdf/fpdflbl.php');
+  require('../../datos/mysql.php');
+
+  $link = conectar();
+
+  if ($_GET['cdglote'])
+  { $packingListSelect = $link->query("
+      SELECT pdtodiseno.diseno,
+             pdtoimpresion.anchof,
+             pdtoimpresion.empalme,
+             pdtoimpresion.impresion,
+             prodbobina.longitud,
+             prodbobina.amplitud,
+             prodbobina.peso,
+             prodbobina.fchmovimiento,
+             prodbobina.cdgbobina,
+            (prodbobina.longitud/pdtojuego.altura) AS cantidad,
+      CONCAT(prodlote.noop,'-',prodbobina.bobina) AS noop
+        FROM prodlote,
+             prodloteope,
+             prodbobina,
+             pdtodiseno,
+             pdtoimpresion,
+             pdtojuego
+      WHERE (prodlote.cdglote = prodbobina.cdglote AND
+             prodlote.cdglote = '".$_GET['cdglote']."') AND
+            (prodlote.cdglote = prodloteope.cdglote AND
+             prodloteope.cdgoperacion = '10001' AND
+             pdtojuego.cdgjuego = prodloteope.cdgjuego) AND  
+            (pdtoimpresion.cdgimpresion = pdtojuego.cdgimpresion AND
+             pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno AND
+             prodlote.cdgproducto = pdtoimpresion.cdgimpresion)");
+  } else
+  { $packingListSelect = $link->query("
+      SELECT pdtodiseno.diseno,
+             pdtoimpresion.anchof,
+             pdtoimpresion.empalme,
+             pdtoimpresion.impresion,
+             prodbobina.longitud,
+             prodbobina.amplitud,
+             prodbobina.peso,
+             prodbobina.fchmovimiento,
+             prodbobina.cdgbobina,
+            (prodbobina.longitud/pdtojuego.altura) AS cantidad,
+      CONCAT(prodlote.noop,'-',prodbobina.bobina) AS noop               
+        FROM prodlote,
+             prodloteope,
+             prodbobina,
+             pdtodiseno,
+             pdtoimpresion,
+             pdtojuego
+      WHERE (prodlote.cdglote = prodbobina.cdglote AND
+             prodbobina.sttbobina = '".$_GET['sttbobina']."' AND
+             prodlote.cdgproducto = '".$_GET['cdgproducto']."') AND
+            (prodlote.cdglote = prodloteope.cdglote AND
+             prodloteope.cdgoperacion = '10001' AND
+             pdtojuego.cdgjuego = prodloteope.cdgjuego) AND
+            (pdtoimpresion.cdgimpresion = pdtojuego.cdgimpresion AND
+             pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno AND
+             prodlote.cdgproducto = pdtoimpresion.cdgimpresion)
+    ORDER BY prodlote.noop,
+             prodbobina.bobina"); }
+  
+
+  if ($packingListSelect->num_rows > 0)
+  { $pdf=new FPDF('P','mm','lbl4x2'); 
+    $pdf->SetDisplayMode(real, continuous);
+    $pdf->AddFont('3of9','','free3of9.php');
+    
+    while ($regPackingList = $packingListSelect->fetch_object())
+    { $pdf->AddPage();
+
+      $pdf->SetY(9);
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(40,4,'Producto',0,1,'L');
+      $pdf->SetFont('Arial','B',12);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(80,4,$regPackingList->impresion,0,1,'L'); 
+      $pdf->SetFont('Arial','',12);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(80,4,$regPackingList->diseno,0,1,'L');       
+
+      $pdf->Ln(1);
+
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(18,4,'Informacion',0,1,'L');
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(12,4,'Longitud',0,0,'L');
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(30,4,number_format($regPackingList->longitud,2).' mts',0,1,'R'); 
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(12,4,'Ancho plano',0,0,'L');
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(30,4,$regPackingList->amplitud.' mm',0,1,'R'); 
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(10,4,'',0,0,'L');
+      $pdf->Cell(12,4,'Peso',0,0,'L');
+      $pdf->SetFont('Arial','B',10);
+      $pdf->Cell(30,4,number_format($regPackingList->peso,3).' kgs',0,1,'R'); 
+
+      $pdf->SetFont('Arial','',10);
+      $pdf->Cell(10,4,'',0,0,'L'); 
+      $pdf->Cell(12,4,'Piezas aprox',0,0,'L');
+      $pdf->SetFont('Arial','B',10); 
+      $pdf->Cell(30,4,number_format($regPackingList->cantidad*1000),0,1,'R'); 
+
+      $pdf->SetY(-7);     
+      $pdf->Cell(10,5,'',0,0,'L');      
+      $pdf->SetFont('Arial','B',20);
+      $pdf->Cell(80,5,'NoOP '.$regPackingList->noop,0,1,'C');
+
+      // Información
+      $pdf->SetY(22.5);
+      
+      $pdf->SetFont('Arial','B',10); 
+      $pdf->Cell(60,4,'',0,0,'L'); 
+      $pdf->Cell(12,4,'Fusion',0,1,'L');
+      
+      $pdf->Cell(60,4,'',0,0,'L'); 
+      $pdf->SetFont('Arial','',10); 
+      $pdf->Cell(12,4,'Ancho',0,0,'L');
+      $pdf->SetFont('Arial','B',12); 
+      $pdf->Cell(20,4,$regPackingList->anchof.' mm',0,1,'R');
+      
+      $pdf->Cell(60,4,'',0,0,'L'); 
+      $pdf->SetFont('Arial','',10); 
+      $pdf->Cell(12,4,'Empalme',0,0,'L');
+      $pdf->SetFont('Arial','B',12); 
+      $pdf->Cell(20,4,$regPackingList->empalme.' mm',0,1,'R');
+
+      $pdf->Ln(4);
+
+      $pdf->Cell(60,4,'',0,0,'L'); 
+      $pdf->SetFont('Arial','',7);
+      $pdf->Cell(32,4,$regPackingList->fchmovimiento,0,1,'R'); 
+
+      // Código de barras
+      $pdf->SetY(4);
+      $pdf->SetFont('3of9','',28);      
+      $pdf->Cell(10,5,'',0,0,'R'); 
+      $pdf->Cell(80,5,'*'.$regPackingList->cdgbobina.'*',0,1,'C');
+      $pdf->Ln(1);
+      $pdf->SetFont('Arial','',8); 
+      $pdf->Cell(10,3,'',0,0,'R'); 
+      $pdf->Cell(80,3,$regPackingList->cdgbobina,0,1,'C'); }
+
+    $pdf->Output();
+  } else
+  { echo '<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="../../css/2014.css" /> 
+  </head>
+  <body>
+    <h1>No se encontraron coincidencias.</1>
+  </body>
+</html>'; }
+?>

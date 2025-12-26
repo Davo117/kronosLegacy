@@ -1,0 +1,321 @@
+<?php session_start();
+  // Conexión a la base de datos
+  function conectar()
+  { return new mysqli('localhost', 'root', 'MSpwd55', 'proton'); }
+
+  // Formulario LogIn 
+  function log1n()
+  { echo '
+        <article class="logo_empresa">
+          <img src="../img_sistema/logonew.png" /></article>
+        <article><br><label><b>Usuario</b></label>
+          <input type="text" id="textusername" name="textusername" required="required" /></article>
+        <article><label><b>Contraseña</b></label><br>
+          <input type="password" id="textpassword" name="textpassword" required="required"/></article>
+        <article><br><input type="submit" id="btnValidar" name="btnValidar" value="Validar" /><br><br></article>'; }
+ 
+  function m3nu_r3chum()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/photo.png"/></a>
+        <article id="menu_nombre">
+          <label><b>Recursos Humanos</b></label><br>
+          <a href="../sm_rechum/rechEmpleado.php"><label>Empleados</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_producto()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/design.png" /></a>
+        <article id="menu_nombre">
+          <label><b>Productos</b></label><br>
+          <label><a href="../sm_producto/pdtoDiseno.php">Diseños</a> |
+            <a href="../sm_producto/pdtoImpresion.php">Impresiones</a> |            
+            <a href="../sm_producto/pdtoConsumo.php">Consumos</a> |
+            <a href="../sm_producto/pdtoJuego.php">Juegos de cilindros</a> |
+            <a href="../sm_producto/pdtoBanda.php">Bandas de seguridad</a> | 
+            <a href="../sm_producto/pdtoProducto.php">Productos cliente</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_ventas()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/exchange.png"/></a>
+        <article id="menu_nombre">
+          <label><b>Logística</b></label><br>
+          <label><a href="../sm_ventas/vntsCliente.php">Clientes</a> | 
+            <a href="../sm_ventas/vntsSucursal.php">Sucursales</a> | 
+            <a href="../sm_ventas/vntsOC.php">Ordenes de compra</a> | 
+            <a href="../sm_ventas/vntsEmbarque.php">Embarques</a> |
+            <a href="../sm_ventas/vntsdev.php">Devoluciones</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_almacenmp()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/shopping_cart.png" /></a>
+        <article id="menu_nombre">
+          <label><b>Materia prima</b></label><br>
+          <label><a href="../sm_almacenmp/progBloque.php">Bloques</a> | 
+            <a href="../sm_almacenmp/progLote.php">Lotes</a> | 
+            <a href="../sm_almacenmp/progLiberacion.php">Liberación</a> |             
+            <a href="../sm_almacenmp/pdtoSustrato.php">Sustrato</a> | 
+            <a href="../sm_almacenmp/pdtoPantone.php">Pantone</a> | 
+            <a href="../sm_almacenmp/progElemento.php">Elementos</a> | 
+            <a href="../sm_almacenmp/progUniMed.php">Unidades de medida</a> | 
+            <a href="../sm_almacenmp/progReporteador.php">Reportes</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_produccion()
+  { echo '
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/gear.png" /></a>
+        <article id="menu_nombre">
+          <label><b>Producción</b></label><br>
+          <label><a href="../sm_produccion/subMenuTermo.php">Termoencogible</a> | 
+            <a href="../sm_produccion/subMenuBanda.php">Banda de seguridad</a> | 
+            <a href="../sm_produccion/prodOperaciones.php">Histórico</a></label> | 
+            <a href="../sm_produccion/prodMaquina.php">Máquinas</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_produccion2()
+  { echo '
+      <section id="modulo_barraup">
+        <a href="../../main.php"><img id="imagen_menu" src="../../img_sistema/gear.png" /></a>
+        <article id="menu_nombre">
+          <label><b>Producción</b></label><br>
+          <label><a href="../../sm_produccion/subMenuTermo.php">Termoencogible</a> | 
+            <a href="../../sm_produccion/subMenuBanda.php">Banda de seguridad</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_infra()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/tools.png"/></a>
+        <article id="menu_nombre">
+          <label><b>Infraestructura</b></label><br>
+          <label><a href="../sm_infra/infrtipo.php">Infraestructuras</a> | 
+            <a href="../sm_infra/infrequipo.php">Equipos</a> |
+            <a href="../sm_infra/infrsolicitud.php">Solicitud de mantenimiento</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_inspeccion()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/certificate.png"/></a>
+        <article id="menu_nombre">
+          <label><b>Inspección de calidad</b></label><br>
+          <label><a href="../sm_inspeccion/inspBuscador.php">Buscador</a> | 
+          <label><a href="../sm_inspeccion/inspNoConforme.php">Producto No Conforme</a></label>
+        </article>
+      </section>'; }
+
+  function m3nu_empaque()
+  { echo'
+      <section id="modulo_barraup">
+        <a href="../main.php"><img id="imagen_menu" src="../img_sistema/box.png"/></a>
+        <article id="menu_nombre">
+          <label><b>Empaque</b></label><br>
+          <label><a href="../sm_almacenpt/alptInventario.php">Inventario</a> | 
+          <label><a href="../sm_almacenpt/alptRollo.php">Rollos</a> | 
+          <label><a href="../sm_almacenpt/alptPaquete.php">Paquetes</a> | 
+          <label><a href="../sm_almacenpt/alptPesaje.php">Pesajes</a> | 
+          <label><a href="../sm_almacenpt/alptDesempaque.php">Desempaques</a></label>
+        </article>
+      </section>'; }
+
+  // Barra para mostrar usuario y dirigirse al menú principal
+  function ma1n()
+  { echo '
+      <section id="modulo_barradown">
+        <article id="usuario_nombre">
+          <label><b>'.$_SESSION["empleado"].'</b><br>
+            <a href="../main.php?mode=logout"><i>'.$_SESSION["usuario"].'</i></a></label>
+        </article>
+      </section>'; }
+
+  // Validar al usuario que intenta acceder
+  function val1dat3($id, $word)
+  { $link = conectar();
+    $sistUsuarioSelect = $link->query("
+      SELECT sistusuario.usuario, 
+             rechempleado.empleado
+        FROM sistusuario, 
+             rechempleado
+       WHERE sistusuario.cdgusuario = rechempleado.cdgempleado AND
+             sistusuario.idusuario = '".$id."' AND
+             sistusuario.sttusuario != '0'");
+
+    if ($sistUsuarioSelect->num_rows > 0)
+    { $regQuery = $sistUsuarioSelect->fetch_object();
+      $_SESSION['usuario'] = $regQuery->usuario;
+      $_SESSION['empleado'] = $regQuery->empleado;
+
+      $link = conectar();              
+      $sistUsuarioSelectWithPassword = $link->query("
+        SELECT * FROM sistusuario
+         WHERE idusuario = '".$id."' AND 
+               wordpass = MD5('".$word."')");
+    
+      if ($sistUsuarioSelectWithPassword->num_rows > 0)
+      { $regSistUsuario = $sistUsuarioSelectWithPassword->fetch_object();
+        $_SESSION['idusuario'] = $regSistUsuario->idusuario;
+        $_SESSION['cdgusuario'] = $regSistUsuario->cdgusuario; }
+      else
+      { session_unset();
+        session_destroy(); }
+    }
+    else
+    { session_unset();
+      session_destroy(); }
+  }
+
+  // Cerrar sesión
+  function cl0s3()  
+  { session_unset();
+    session_destroy(); }
+
+  // Verificar que el módulo este registrado  
+  function sistModulo($cdgmodulo)
+  { $link = conectar();
+    $querySelect = $link->query("
+      SELECT * FROM sistmodulo
+       WHERE cdgmodulo = '".$cdgmodulo."' AND 
+             sttmodulo >= '1'"); 
+
+    if ($querySelect->num_rows > 0)
+    { $regQuery = $querySelect->fetch_object(); 
+      $answerModulo = $regQuery->modulo; 
+    } else
+    { $answerModulo = ''; }
+
+    return $answerModulo; }
+
+  // Verificar los permisos por módulo
+  function sistPermiso($cdgmodulo, $cdgusuario)
+  { $link = conectar();
+    $querySelect = $link->query("
+      SELECT sistpermiso.permiso
+        FROM sistpermiso,
+             sistperfil,
+             sistusuario
+      WHERE (sistpermiso.cdgmodulo = '".$cdgmodulo."' AND 
+             sistpermiso.cdgperfil = sistperfil.cdgperfil) AND 
+            (sistusuario.cdgusuario = '".$cdgusuario."' AND 
+             sistperfil.cdgperfil = sistusuario.cdgperfil)");
+
+    if ($querySelect->num_rows > 0)
+    { $regQuery = $querySelect->fetch_object(); 
+      $answerPermiso = $regQuery->permiso; 
+    } else
+    { $answerPermiso = ''; }
+
+    return $answerPermiso; }
+
+  // Validar que la fecha ingresada sea correcta
+  function valorFecha($txtDate)
+  { $dataYear = substr($txtDate,0,4);
+    $dataMonth = str_pad(trim(substr($txtDate,5,2)),2,'0',STR_PAD_LEFT);
+    $dataDay = str_pad(trim(substr($txtDate,8,2)),2,'0',STR_PAD_LEFT);
+    
+    if ((int)$dataMonth == 0 OR (int)$dataDay == 0 OR (int)$dataYear == 0)
+    { $answerDate = date("Y-m-d"); }  
+    else
+    { $answerDate = $dataYear.'-'.$dataMonth.'-'.$dataDay; }
+
+    return $answerDate; }
+
+  // Convertir la fecha 
+  function ValidarFecha($dataDate)
+  { if ($dataDate == '')
+    { $answerDate = date('Y-m-d'); }
+    else
+    { $dataDates = str_replace("-", "", $dataDate);
+
+      $dataDay = str_pad(substr($dataDates,6,2),2,'0',STR_PAD_LEFT);
+      $dataMonth = str_pad(substr($dataDates,4,2),2,'0',STR_PAD_LEFT);
+      $dataYear = str_pad(substr($dataDates,0,4),4,'0',STR_PAD_LEFT);
+
+      if (checkdate((int)$dataMonth,(int)$dataDay,(int)$dataYear))
+      { $answerDate = $dataYear.'-'.$dataMonth.'-'.$dataDay; }
+      else
+      { $answerDate = date('Y-m-d'); }
+    }
+
+    return $answerDate; }
+
+  $_acrobat = '<img src="../img_sistema/acrobat.png"/>';  
+  $_barcode = '<img src="../img_sistema/barcode.png" />';
+  $_box = '<img src="../img_sistema/box.png" />';
+  $_button_blue_repeat = '<img src="../img_sistema/button_blue_repeat.png" />';  
+  $_calendar = '<img src="../img_sistema/calendar.png" />';
+  $_chart_pie = '<img src="../img_sistema/chart_pie.png" />';
+  $_chip = '<img src="../img_sistema/chip.png" />';
+  $_camera = '<img src="../img_sistema/camera.png" />';
+  $_certificate = '<img src="../img_sistema/certificate.png" />';
+  $_database_active = '<img src="../img_sistema/database_active.png" />';
+  $_database_inactive = '<img src="../img_sistema/database_inactive.png" />';
+  $_delivery = '<img src="../img_sistema/delivery.png" />';
+  $_excel = '<img src="../img_sistema/excel.png"/>';
+  $_exchange = '<img src="../img_sistema/exchange.png"/>';  
+  $_impresion = '<img src="../img_sistema/impresion.png"/>';
+  $_forder_open = '<img src="../img_sistema/folder_open.png" />';
+  $_gear = '<img src="../img_sistema/gear.png" />';  
+  $_link = '<img src="../img_sistema/link.png" />';
+  $_lock = '<img src="../img_sistema/lock.png" />';
+  $_power_black = '<img src="../img_sistema/power_black.png" />';
+  $_power_blue = '<img src="../img_sistema/power_blue.png" />';
+  $_puzzle = '<img src="../img_sistema/puzzle.png" />';
+  $_search = '<img src="../img_sistema/search.png" />';
+  $_shopping_cart = '<img src="../img_sistema/shopping_cart.png" />';
+  $_sub_blue_accept = '<img src="../img_sistema/sub_blue_accept.png" />';  
+  $_receipt = '<img src="../img_sistema/receipt.png" />';
+  $_recycle_bin = '<img src="../img_sistema/recycle_bin.png" />';
+  $_tag = '<img src="../img_sistema/tag.png" />';
+  $_tools = '<img src="../img_sistema/tools.png" />';
+  $_user_group = '<img src="../img_sistema/user_group.png" />';
+
+  $_help_blue = '<img id="imagen_ayuda" src="../img_sistema/help_blue.png"/>';
+  $_gearback = '<img id="imagen_ayuda" src="../img_sistema/gear.png" />';
+
+  $png_search = '<img alt="Buscar" src="../img_sistema/search.png" height="16" width="16" border="0"/>';  
+  $png_recycle_bin = '<img alt="Suprimir" src="../img_sistema/recycle_bin.png" height="16" width="16" border="0" />';
+  $png_power_black = '<img alt="Habilitar" src="../img_sistema/power_black.png" height="16" width="16" border="0" />';
+  $png_power_blue = '<img alt="Deshabilitar" src="../img_sistema/power_blue.png" height="16" width="16" border="0" />';  
+  $png_file_download = '<img alt="Descargar" src="../img_sistema/file_download.png" height="16" width="16" border="0" />';  
+  $png_camera = '<img alt="Imagen" src="../img_sistema/camera.png" height="16" width="16" border="0" />';
+  $png_calendar = '<img alt="Programaciones" src="../img_sistema/calendar.png" height="16" width="16" border="0" />';
+  $png_link = '<img alt="" src="../img_sistema/link.png" height="16" width="16" border="0" />';
+  $png_puzzle = '<img alt="" src="../img_sistema/puzzle.png" height="16" width="16" border="0" />';
+  $png_chip = '<img alt="" src="../img_sistema/chip.png" height="16" width="16" border="0" />';
+  $png_button_blue_repeat = '<img alt="" src="../img_sistema/button_blue_repeat.png" height="16" width="16" border="0" />';
+  $png_box_open = '<img alt="" src="../img_sistema/box_open.png" height="16" width="16" border="0" />';
+  $png_barcode = '<img alt="Codigo de barras" src="../img_sistema/barcode.png" height="16" border="0"/>';
+  $png_delivery = '<img alt="Acrobat Reader" src="../img_sistema/delivery.png" height="16" border="0"/>';
+  $png_user_group = '<img alt="Contactos" src="../img_sistema/user_group.png" height="16" border="0"/>';
+  $png_tag = '<img alt="Productos" src="../img_sistema/tag.png" height="16" border="0"/>'; 
+  $png_gear = '<img alt="Productos" src="../img_sistema/gear.png" height="16" border="0"/>'; 
+  $png_folder = '<img alt="Expediente" src="../img_sistema/folder.png" height="16" border="0"/>';
+  $png_folder_open = '<img alt="Abrir expediente" src="../img_sistema/folder.png" height="16" border="0"/>';
+  $png_shopping_cart = '<img alt="Compras" src="../img_sistema/shopping_cart.png" height="16" border="0"/>';
+  $png_pnc = '<img alt="Producto No Conforme" src="../img_sistema/pnc.png" height="16" border="0"/>';  
+  $png_blue_accept = '<img alt="Retorno" src="../img_sistema/sub_blue_accept.png" height="16" border="0"/>'; 
+  
+  $png_button_blue_rew = '<img alt="Compras" src="../img_sistema/button_blue_rew.png" height="40" border="0"/>';
+  $png_button_blue_ffw = '<img alt="Compras" src="../img_sistema/button_blue_ffw.png" height="40" border="0"/>';
+
+  $png_acrobat = '<img alt="Acrobat Reader" src="../img_sistema/acrobat.png" height="16" border="0"/>';  
+  $jpg_excel = '<img alt="Excel" src="../img_sistema/excel.jpg" height="16" border="0"/>';  
+
+  $msg_noread = 'No cuentas con permisos de lectura.';
+  $msg_norewrite = 'No cuentas con permisos de escritura/re-escritura.';
+  $msg_nodelete = 'No cuentas con permisos para remover registros.';
+  
+?>

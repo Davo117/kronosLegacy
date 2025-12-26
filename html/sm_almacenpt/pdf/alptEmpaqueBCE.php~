@@ -1,0 +1,353 @@
+<?php
+
+  include '../../datos/mysql.php';	
+  require('../../fpdf/fpdflbl.php');
+
+  if ($_GET['cdgempaque']) 
+  { $link = conectar(); 
+
+    $labelEmpaque_cdgempaque = $_GET['cdgempaque'];
+
+    $alptEmpaqueSelect = $link->query("
+      SELECT * FROM alptempaque
+       WHERE cdgempaque = '".$labelEmpaque_cdgempaque."'");
+
+    if ($alptEmpaqueSelect->num_rows > 0)
+    { $regAlptEmpaque = $alptEmpaqueSelect->fetch_object();
+
+      $labelEmpaque_tpoempaque = $regAlptEmpaque->tpoempaque;
+
+      if ($labelEmpaque_tpoempaque == 'Q')
+      { // Busqueda del empaque entre los empaque de rollo (Banda continua)   
+        $packingListSelect = $link->query("
+          SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+                 pdtodiseno.diseno,
+                 pdtoimpresion.idimpresion,
+                 pdtoimpresion.impresion,
+                 pdtoimpresion.alto,
+                 alptempaquer.cantidad,
+                 prodrollo.longitud,
+                 prodrollo.amplitud,
+                 prodrollo.peso,
+                 prodrollo.cdgrollo,
+                 alptempaque.noempaque,
+                 alptempaque.peso AS pbruto,
+                 alptempaquer.nocontrol
+            FROM prodlote,
+                 prodbobina,
+                 prodrollo,
+                 pdtoimpresion,
+                 pdtodiseno,
+                 alptempaquer,
+                 alptempaque
+          WHERE (prodlote.cdglote = prodbobina.cdglote AND
+                 prodbobina.cdgbobina = prodrollo.cdgbobina) AND 
+                (prodrollo.cdgproducto = pdtoimpresion.cdgimpresion AND
+                 pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno) AND
+                 prodrollo.cdgempaque = '".$labelEmpaque_cdgempaque."' AND
+                 prodrollo.cdgrollo = alptempaquer.cdgrollo AND
+                 alptempaquer.cdgempaque = alptempaque.cdgempaque
+        ORDER BY alptempaquer.nocontrol"); 
+
+        if ($packingListSelect->num_rows > 0)
+        { $pdf=new FPDF('P','mm','lbl4x2'); 
+          $pdf->SetDisplayMode(real, continuous);
+          $pdf->AddFont('3of9','','free3of9.php');
+        
+          while ($regPackingList = $packingListSelect->fetch_object())
+          { if ($alptEmpaque_noempaque == '') { $alptEmpaque_noempaque = $regPackingList->noempaque; }
+            if ($alptEmpaque_idimpresion == '') { $alptEmpaque_idimpresion = $regPackingList->idimpresion; }
+            if ($alptEmpaque_impresion == '') { $alptEmpaque_impresion = $regPackingList->diseno.' | '.$regPackingList->impresion; }
+            if ($alptEmpaque_pbruto == '') { $alptEmpaque_pbruto = $regPackingList->pbruto; }
+
+            $alptEmpaque_longitud += $regPackingList->longitud;
+            $alptEmpaque_peso += $regPackingList->peso;
+            $alptEmpaque_piezas += $regPackingList->cantidad;
+
+            $pdf->AddPage();
+
+            $pdf->Cell(15,3,'',0,0,'L');      
+            $pdf->SetFont('Arial','B',18);
+            $pdf->Cell(33,3,'',0,1,'R'); 
+
+            $pdf->Cell(10,8,'',0,0,'L');      
+            $pdf->SetFont('Arial','B',18);
+            $pdf->Cell(38,8,'Q'.$regPackingList->noempaque.'.R'.$regPackingList->nocontrol,0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(10,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Longitud',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,number_format($regPackingList->longitud,2).' mts',0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(10,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Ancho plano',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,$regPackingList->amplitud.' mm',0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(10,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Peso',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,number_format($regPackingList->peso,3).' kgs',0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(10,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Producto',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,$regPackingList->idimpresion,0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10); 
+            $pdf->Cell(10,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Corte',0,0,'L');
+            $pdf->SetFont('Arial','B',12); 
+            $pdf->Cell(28,4,$regPackingList->alto.' mm',0,1,'R');
+            
+            $pdf->SetFont('Arial','',10); 
+            $pdf->Cell(10,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Piezas aprox',0,0,'L');
+            $pdf->SetFont('Arial','B',12); 
+            $pdf->Cell(28,4,number_format($regPackingList->cantidad*1000),0,1,'R'); 
+            $pdf->Ln(2);
+
+            $pdf->SetFont('3of9','',20);            
+            $pdf->Cell(48,5,'*'.$regPackingList->cdgrollo.'*',0,1,'R');
+            $pdf->SetFont('Arial','',8);       
+            $pdf->Cell(56,3,$regPackingList->cdgrollo,0,1,'C');      
+
+            //DUPLICADO
+
+            $pdf->SetY(0);
+
+            $pdf->Cell(66,3,'',0,0,'L');      
+            $pdf->SetFont('Arial','B',18);
+            $pdf->Cell(33,3,'',0,1,'R');       
+
+            $pdf->Cell(53,8,'',0,0,'L');      
+            $pdf->SetFont('Arial','B',18);
+            $pdf->Cell(40,8,'Q'.$regPackingList->noempaque.'.R'.$regPackingList->nocontrol,0,1,'L'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(53,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Longitud',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,number_format($regPackingList->longitud,2).' mts',0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(53,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Ancho plano',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,$regPackingList->amplitud.' mm',0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(53,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Peso',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,number_format($regPackingList->peso,3).' kgs',0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10);
+            $pdf->Cell(53,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Producto',0,0,'L');
+            $pdf->SetFont('Arial','B',10);
+            $pdf->Cell(28,4,$regPackingList->idimpresion,0,1,'R'); 
+
+            $pdf->SetFont('Arial','',10); 
+            $pdf->Cell(53,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Corte',0,0,'L');
+            $pdf->SetFont('Arial','B',12); 
+            $pdf->Cell(28,4,$regPackingList->alto.' mm',0,1,'R');
+            
+            $pdf->SetFont('Arial','',10); 
+            $pdf->Cell(53,4,'',0,0,'L');
+            $pdf->Cell(10,4,'Piezas aprox',0,0,'L');
+            $pdf->SetFont('Arial','B',12); 
+            $pdf->Cell(28,4,number_format($regPackingList->cantidad*1000),0,1,'R'); 
+            $pdf->Ln(2);
+
+            $pdf->SetFont('3of9','',20);  
+            $pdf->Cell(53,4,'',0,0,'L');          
+            $pdf->Cell(48,5,'*'.$regPackingList->cdgrollo.'*',0,1,'L');
+            $pdf->SetFont('Arial','',8);
+            $pdf->Cell(53,4,'',0,0,'L');       
+            $pdf->Cell(40,3,$regPackingList->cdgrollo,0,1,'C');
+
+            $pdf->SetY(0);
+            $pdf->Line(50.5,2.5,51,4);
+            $pdf->Line(50.5,5.5,51,7);
+            $pdf->Line(50.5,8.5,51,10);
+            $pdf->Line(50.5,11.5,51,13);
+            $pdf->Line(50.5,14.5,51,16);
+            $pdf->Line(50.5,17.5,51,19);
+            $pdf->Line(50.5,20.5,51,22);
+            $pdf->Line(50.5,23.5,51,25);
+            $pdf->Line(50.5,26.5,51,28);
+            $pdf->Line(50.5,29.5,51,31);
+            $pdf->Line(50.5,32.5,51,34);
+            $pdf->Line(50.5,35.5,51,37);
+            $pdf->Line(50.5,38.5,51,40);
+            $pdf->Line(50.5,41.5,51,43);
+            $pdf->Line(50.5,44.5,51,46);
+            $pdf->Line(50.5,47.5,51,49); }
+
+          $pdf->AddPage();
+
+          $pdf->SetFont('Arial','B',12);
+          $pdf->SetY(4);
+          $pdf->Cell(10,5,'',0,0,'L');
+          $pdf->Cell(18,5,'Empaque ',0,1,'L');
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','I',11);
+          $pdf->Cell(18,4,$packingListSelect->num_rows.' Rollos',0,1,'L');
+
+          $pdf->SetY(4);
+          $pdf->SetFont('Arial','B',36);
+          $pdf->Cell(80,12,'Q'.$alptEmpaque_noempaque,0,1,'R'); 
+
+          $pdf->SetY(16);
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(18,4,'Producto',0,1,'L');
+          $pdf->SetFont('Arial','',12);
+          $pdf->Cell(10,5,'',0,0,'L');
+          $pdf->Cell(94,5,$alptEmpaque_impresion,0,1,'L');
+
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(18,4,'Longitud ',0,0,'L');
+          $pdf->SetFont('Arial','B',11);
+          $pdf->Cell(40,4,number_format($alptEmpaque_longitud,2).' Mts',0,1,'R');
+
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(18,4,'Piezas aprox ',0,0,'L');
+          $pdf->SetFont('Arial','B',11);
+          $pdf->Cell(40,4,number_format($alptEmpaque_piezas*1000),0,1,'R');
+
+          $pdf->Ln(4); 
+
+          $pdf->SetFont('3of9','',26);
+          $pdf->Cell(98,6,'*'.$labelEmpaque_cdgempaque.'*',0,1,'C');
+
+          $pdf->Ln(2); 
+
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->Cell(80,4,'Temperatura de almacenamiento menor a 30 grados.',1,1,'C');
+
+          $pdf->Output();
+        } else
+        { echo '<html>
+          <head>    
+            <link rel="stylesheet" type="text/css" href="../../css/2014.css" media="screen" /> 
+          </head>
+          <body>
+            <div><h1>El empaque de rollo no fue encontrado</h1></div>
+          </body>
+        </html>'; }
+      }
+
+      if ($labelEmpaque_tpoempaque == 'C')
+      { $packingListSelect = $link->query("
+          SELECT alptempaque.noempaque,
+                 pdtoimpresion.impresion,
+           COUNT(prodpaquete.cdgpaquete) AS paquetes,
+                 alptempaque.peso,
+             SUM(prodpaquete.cantidad) AS piezas  
+            FROM prodlote,
+                 prodbobina,
+                 prodrollo,
+                 prodpaquete,
+                 alptempaque,
+                 pdtodiseno,
+                 pdtoimpresion
+           WHERE prodlote.cdglote = prodbobina.cdglote AND
+                 prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                 prodrollo.cdgrollo = prodpaquete.cdgrollo AND
+                 prodpaquete.cdgempaque = alptempaque.cdgempaque AND
+                 alptempaque.cdgempaque  = '".$labelEmpaque_cdgempaque."' AND
+                 prodpaquete.cdgproducto = pdtoimpresion.cdgimpresion AND
+                 pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno");
+
+        if ($packingListSelect->num_rows > 0)
+        { $regAlptEmpaque = $packingListSelect->fetch_object();
+
+          $pdf=new FPDF('P','mm','lbl4x2');
+          $pdf->SetDisplayMode(real, continuous);
+          $pdf->AddFont('3of9','','free3of9.php');
+
+          $pdf->AddPage();
+
+          $pdf->SetFont('Arial','B',12);
+          $pdf->SetY(4);
+          $pdf->Cell(10,5,'',0,0,'L');
+          $pdf->Cell(18,5,'Empaque ',0,1,'L');
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','I',11);
+          $pdf->Cell(18,4,$regAlptEmpaque->paquetes.' Paquetes',0,1,'L');
+
+          $pdf->SetY(4);
+          $pdf->SetFont('Arial','B',36);
+          $pdf->Cell(80,12,'C'.$regAlptEmpaque->noempaque,0,1,'R'); 
+
+          $pdf->SetY(16);
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(18,4,'Producto',0,1,'L');
+          $pdf->SetFont('Arial','',12);
+          $pdf->Cell(10,5,'',0,0,'L');
+          $pdf->Cell(94,5,$regAlptEmpaque->diseno.' | ',$regAlptEmpaque->impresion,0,1,'L');
+
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(18,4,'Piezas aprox ',0,0,'L');
+          $pdf->SetFont('Arial','B',11);
+          $pdf->Cell(40,4,number_format($regAlptEmpaque->piezas*1000),0,1,'R');
+
+          $pdf->Ln(8); 
+
+          $pdf->SetFont('3of9','',26);
+          $pdf->Cell(98,6,'*'.$labelEmpaque_cdgempaque.'*',0,1,'C');
+
+          $pdf->Ln(2); 
+
+          $pdf->SetFont('Arial','B',9);
+          $pdf->Cell(10,4,'',0,0,'L');
+          $pdf->Cell(80,4,'Temperatura de almacenamiento menor a 30 grados.',1,1,'C');
+
+          $pdf->Output();                
+        } else
+        { echo '<html>
+          <head>    
+            <link rel="stylesheet" type="text/css" href="../../css/2014.css" media="screen" /> 
+          </head>
+          <body>
+            <div><h1>El empaque de paquetes no fue encontrado</h1></div>
+          </body>
+        </html>'; }
+      }
+    } else
+    { echo '<html>
+    <head>    
+      <link rel="stylesheet" type="text/css" href="../../css/2014.css" media="screen" /> 
+    </head>
+    <body>
+      <div><h1>El empaque no fue encontrado</h1></div>
+    </body>
+  </html>';
+
+    exit; }    
+  } else
+  { echo '<html>
+    <head>
+      <link rel="stylesheet" type="text/css" href="../../css/2014.css" media="screen" /> 
+    </head>
+    <body>
+      <div><h1>El empaque no fue indicado</h1></div>
+    </body>
+  </html>'; }
+
+//&tpoempaque=Q
+
+  
+?>

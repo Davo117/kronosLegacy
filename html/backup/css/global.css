@@ -1,0 +1,226 @@
+body{
+	font-family: Verdana,sans-serif;font-size: 80%;	
+	/*color: #666666;*/
+	line-height: 1.166;	
+	margin: 0px;
+	padding: 0px;
+	background: #FFFFFF;
+	
+	color: #000000;
+	background-image: url('../img_sistema/gblPageBg.gif');
+}
+
+/***********************************************/
+/* Component Divs                              */
+/***********************************************/
+#siteName{
+	font: 120% Verdana,sans-serif;
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	color: #71828A;
+}
+
+/************** estilos *****************/
+#dates{
+	font: 70% Verdana,sans-serif;
+	position: absolute;
+	top: 16px;
+	right: 4px;
+	color: #000000;
+}
+
+#login{
+	font: 90% Verdana,sans-serif;
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	color: #71828A;
+	z-index: 101;
+}
+
+#message{
+	font: 90% Verdana,sans-serif;
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	color: #71828A;
+}
+
+.Button{border-width:1px;
+text-align:center;
+font-weight:bold;
+font-size:12pt;
+font-family:arial;
+background-color:#CCCCCC;
+color:#999999;
+height:22px;
+}
+
+.boton {
+  font-size:12px;
+  font-family:Verdana,Helvetica;
+  font-weight:bold;
+  color:white;
+  background:#2E2E2E;
+  border:0px;
+  height:22px;
+  border-radius: 4px; 
+}
+
+.Numero {
+text-align:right;
+}
+
+#ErrorDato{
+ color:#FF0000;
+ margin: 0px;
+ padding: 0px;
+}
+
+#CheckIn{
+ font: bold 120% Arial,sans-serif;
+ color:#336600;
+ margin: 0px;
+ padding: 0px;
+}
+
+#CheckOut{
+ font: bold 120% Arial,sans-serif;
+ color:#CC3300;
+ margin: 0px;
+ padding: 0px;
+}
+
+/************** utility styles *****************/
+#utility{
+	font: 75% Verdana,sans-serif;
+	position: absolute;
+	top: 16px;
+	right: 0px;
+	color: #919999;
+}
+
+#utility a{
+	color: #ffffff;
+}
+
+#utility a:hover{
+	text-decoration: underline;
+}
+
+
+/************** pageName styles ****************SE UTILIZAN*/
+
+#pageName{
+    color: #666666;
+	padding: 0px 0px 14px 10px;
+	margin: 0px;
+	border-bottom:1px solid #ccd2d2;
+}
+
+#pageName h2{
+	font: bold 175% Arial,sans-serif;
+	color: #666666;
+	top: 6px;
+	margin:0px;
+	padding: 0px;
+}
+
+#pageName h1{
+	font: bold 125% Arial,sans-serif;
+	color: #666666;
+	top: 6px;
+	margin:0px;
+	padding: 0px;
+}
+
+#pageName img{
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	padding: 0px;
+	margin: 0px;
+}
+
+#pageEnd{
+	padding: 0px 0px 6px 10px;
+	margin: 0px;
+}
+
+/************* globalNav styles ****************/
+
+table { 
+  background:#F2F2F2;
+  /*border:1px solid gray;*/
+  /*border-collapse:collapse;*/
+  color:#fff;
+  font:normal 12px verdana, arial, helvetica, sans-serif;
+  border-radius: 5px; 
+}
+
+caption { border:1px solid #5C443A;
+ color:#5C443A;
+ font-weight:bold;
+ letter-spacing:20px;
+ padding:6px 4px 8px 0px;
+ text-align:center;
+ text-transform:uppercase;
+}
+td, th { color:#363636;
+ padding:.4em;
+ 
+ border-radius: 5px; 
+}
+tr { /*border:1px dotted gray;*/
+
+ border-radius: 5px;
+}
+thead th, tbody th, tfoot th { background:#848484;
+ color:#2E2E2E;
+ padding:3px 10px 3px 10px;
+ /*text-align:center;*/
+ /*text-transform:uppercase;*/
+}
+
+tbody td a { color:#363636;
+ text-decoration:none;
+}
+tbody td a:visited { color:gray;
+ text-decoration:line-through;
+}
+tbody td a:hover { text-decoration:underline;
+}
+tbody th a { color:#363636;
+ font-weight:normal;
+ text-decoration:none;
+}
+tbody th a:hover { color:#363636;
+}
+/*tbody td+td+td+td a { background-image:url('bullet_blue.png');
+ background-position:left center;
+ background-repeat:no-repeat;
+ color:#03476F;
+ padding-left:15px;
+}
+tbody td+td+td+td a:visited { background-image:url('bullet_white.png');
+ background-position:left center;
+ background-repeat:no-repeat;
+}*/
+
+tbody th, tbody td { 
+ /*text-align:right;*/
+ vertical-align:top;
+ border-radius: 5px;
+}
+
+tfoot td { background:#5C443A;
+ color:#FFFFFF;
+ padding-top:3px;
+}
+.odd { background:#fff;
+}
+tbody tr:hover { background:#99BCBF;
+ /*border:1px solid #03476F;*/
+ color:#000000;
+}

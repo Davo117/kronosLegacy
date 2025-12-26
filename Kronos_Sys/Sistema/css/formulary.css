@@ -1,0 +1,418 @@
+form#formulary {
+-webkit-box-shadow: -3px 6px 50px -14px rgba(0,0,0,0.81);
+-moz-box-shadow: -3px 6px 50px -14px rgba(0,0,0,0.81);
+box-shadow: -3px 6px 50px -14px rgba(0,0,0,0.81);
+  padding-top:2px;
+  padding-left:10px;
+  margin-top:10px;
+  text-align: justify;
+  color: #000;
+  width: 1000px;
+  margin-left: 210px;
+  font-size:0.85em;
+  font-family:bold 120% Sansation;
+}
+
+input:hover
+{
+  background-color:#FF9429; 
+}
+
+.checks
+{
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+float: right;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(90%, -90%);
+}
+.txtChecks
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -520%);
+text-shadow: 1px 1px 2px gray;
+}
+.checks2
+{
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+float: right;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(90%, -100%);
+}
+.txtChecks2
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -1160%);
+text-shadow: 1px 1px 2px gray;
+}
+.checks3
+{
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+float: right;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(90%, -100%);
+}
+.txtChecks3
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -500%);
+text-shadow: 1px 1px 2px gray;
+}
+input
+{ 
+  background-color:#fff;
+  height: 18px;
+  width: 180px;
+}
+select
+{
+  background-color:#939393;
+  height: 20px;
+  width: 180px;
+  border-radius:4px;
+  margin-top:2px;
+  margin-bottom:7px;
+  font-size:13px;
+}
+.deter
+{
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+float: right;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(170%, -98%);
+}
+.detertxt
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  font-size:14px;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-230%, -360%);
+text-shadow: 1px 1px 2px gray;
+}
+
+
+
+.titulos
+{
+  color:#000;
+   font:light 120% Sansation;
+    margin-top:38px;
+}
+p#titulo
+{
+  border-bottom: 5px solid #E5531D;
+  font-family:Sansation;
+
+
+}
+
+p {
+margin-top: 2pt;
+margin-bottom: 2pt;
+font-family:Sansation;
+font-size:13.5px;
+}
+
+button
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:0.5em;
+  margin:18px;
+  margin-left: 800px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+
+
+}
+
+.botonPerson1
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:0.8em;
+  margin:18px;
+  margin-left: 800px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(70%, -560%);
+}
+
+.botonPerson2
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:0.8em;
+  margin:18px;
+  margin-left: 800px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(60%, -915%);
+}
+.botonPerson3
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:0.8em;
+  margin:18px;
+  margin-left: 800px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(-30%, -390%);
+}
+button:hover
+{ 
+  background-color: #767676;
+
+}
+
+p#mostrar{
+  padding-right:87px;
+  font-family:Sansation;
+  text-align: right;
+  font-size:0.90em;
+  font-style: italic;
+  color:#939393;
+}
+.ordenMedio
+{
+  color:#B12929;
+   font:bold 150% Sansation;
+    margin-top:38px;
+  padding-left:1000px;
+}
+/*Lira
+xD modificaciones locoshonisimas*/ 
+
+.btnStyle1
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:1.05em;
+  margin:18px;
+  margin-left: 100px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(110%, -360%);
+}
+
+
+
+
+.btnStyle2
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:1.05em;
+  margin:18px;
+  margin-left: 100px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(525%, -360%);
+}
+
+
+.btnStyle3
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:1.05em;
+  margin:18px;
+  margin-left: 100px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(320%, -360%);
+}
+
+
+.btnStyle4
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:1.05em;
+  margin:18px;
+  margin-left: 100px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(720%, -390%);
+}
+
+.btnStyle5
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:1.05em;
+  margin:18px;
+  margin-left: 100px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(690%, -150%);
+}
+
+
+
+.btnStyle6
+{ 
+  background:#BDBDBD;
+  color:#fff;
+  font-size:1.05em;
+  margin:18px;
+  margin-left: 100px;
+  text-align:center;
+  width:100px;
+  height:21px;
+  margin-top: 2pt;
+margin-bottom: 5pt;
+transform: translate(525%, -130%);
+}
+
+
+
+
+
+
+.boxcheck
+{
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+float: right;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(90%, -90%);
+}
+.checkTxt
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -750%);
+text-shadow: 1px 1px 2px gray;
+}
+
+.checkTxt2
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -787%);
+text-shadow: 1px 1px 2px gray;
+}
+
+.checkTxt3
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -530%);
+text-shadow: 1px 1px 2px gray;
+}
+
+
+
+
+.checkTxt4
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -640%);
+text-shadow: 1px 1px 2px gray;
+}
+
+
+
+
+.checkTxt5
+{
+
+  color:#000;
+  margin-left: 850px;
+  text-align:center;
+  width:100px;
+    margin-right: 1em;
+    margin-bottom: 1em;
+    transform: translate(-2%, -905%);
+text-shadow: 1px 1px 2px gray;
+}
+
+
+
+}

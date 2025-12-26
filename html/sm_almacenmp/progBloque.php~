@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Bloques de materia prima</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+
+  include '../datos/mysql.php';
+  $link = conectar();  
+
+  m3nu_almacenmp();
+
+  $sistModulo_cdgmodulo = '50010';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+    if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_POST['textusername'] AND $_POST['textpassword']) { val1dat3($_POST['textusername'], $_POST['textpassword']); }
+
+    if ($_SESSION['cdgusuario'])
+    { ma1n(); }
+    else
+    { echo '
+      <div id="loginform">
+        <form id="login" action="progBloque.php" method="POST">';
+
+      log1n();
+
+      echo '
+        </form>
+      </div>
+    </div>
+  </body>
+</html>'; 
+     
+      exit; }
+
+    $progBloque_idbloque = trim($_POST['txtId']);
+    $progBloque_bloque = $_POST['txtNombre'];
+    $progBloque_cdgsustrato = $_POST['slcCdgSustrato'];
+    $progBloque_fchbloque = $_POST['dteFchBloque'];  
+
+    if ($progBloque_fchbloque == '') 
+    { $progBloque_fchbloque = date("Y-m-d"); }
+    else
+    { $fchbloque = str_replace("-", "", $progBloque_fchbloque);
+      
+      $dia = str_pad(substr($fchbloque,6,2),2,'0',STR_PAD_LEFT);
+      $mes = str_pad(substr($fchbloque,4,2),2,'0',STR_PAD_LEFT);
+      $ano = '20'.str_pad(substr($fchbloque,2,2),2,'0',STR_PAD_LEFT);
+            
+      if (checkdate((int)$mes,(int)$dia,(int)$ano)) 
+      { $progBloque_fchbloque = $ano.'-'.$mes.'-'.$dia; }
+      else
+      { $progBloque_fchbloque = date('Y-m-d'); }
+    }
+
+    if ($_GET['cdgbloque'])
+    { if (substr($sistModulo_permiso,0,3) == 'rwx')
+      { $querySelect = $link->query("
+          SELECT * FROM progbloque
+           WHERE cdgbloque = '".$_GET['cdgbloque']."'");
+        
+        if ($querySelect->num_rows > 0)
+        { $regProgBloque = $querySelect->fetch_object();
+
+          $progBloque_idbloque = $regProgBloque->idbloque;
+          $progBloque_bloque = $regProgBloque->bloque;
+          $progBloque_cdgsustrato = $regProgBloque->cdgsustrato;
+          $progBloque_fchbloque = $regProgBloque->fchbloque;
+          $progBloque_cdgbloque = $regProgBloque->cdgbloque;
+          $progBloque_sttbloque = $regProgBloque->sttbloque;
+
+          if ($_GET['proceso'] == 'upload')
+          { $subQuerySelect = $link->query("
+              SELECT * FROM pdtosustrato
+               WHERE cdgsustrato = '".$progBloque_cdgsustrato."'");
+
+            if ($subQuerySelect->num_rows > 0)
+            { $regSubQuery = $subQuerySelect->fetch_object();
+
+              $progBloque_amplitud = $regSubQuery->amplitud;
+              $progBloque_calibre = $regSubQuery->calibre;
+              $progBloque_encogimiento = $regSubQuery->encogimiento;
+
+              if (substr($sistModulo_permiso,0,3) == 'rwx')
+              { require_once '../php-excel-reader/excel_reader2.php';
+                $data = new Spreadsheet_Excel_Reader("excel/upload2.xls");
+
+                // Inicio de la importación de registros
+                for ($i = 2; $i <= 999; $i++) 
+                { $progLote_cdglote = $progBloque_cdgbloque.str_pad($data->sheets[0]['cells'][$i][7],3,'0',STR_PAD_LEFT).'0000';
+                      
+                  if (trim($data->sheets[0]['cells'][$i][1]) != '') 
+                  { $link->query("
+                      INSERT INTO proglote
+                        (cdgbloque, idlote, lote, longitud, amplitud, calibre, encogimiento, peso, tarima, cdglote, fchmovimiento)
+                      VALUES
+                        ('".$progBloque_cdgbloque."', '".$data->sheets[0]['cells'][$i][7]."', '".$data->sheets[0]['cells'][$i][1]."', '".$data->sheets[0]['cells'][$i][2]."', '".$progBloque_amplitud."', '".$progBloque_calibre."', '".$progBloque_encogimiento."', '".$data->sheets[0]['cells'][$i][6]."', '".$data->sheets[0]['cells'][$i][8]."', '".$progLote_cdglote."', NOW())");
+                  }
+                  else
+                  { break; }
+                }
+                // Final de la importación de registros
+              } else
+              { $msg_alert = $msg_noread; }                  
+            } else
+            { // Error, el sustrato del bloque no fue definido
+              $msg_alert = 'Código de bloque '.$progLote_cdgbloque.' error en el sustrato [No definido]'; }
+          }
+          
+          if ($_GET['proceso'] == 'update')
+          { if (substr($sistModulo_permiso,0,2) == 'rw')
+            { if ($progBloque_sttbloque == '1')
+              { $progBloque_newsttbloque = '0'; }
+            
+              if ($progBloque_sttbloque == '0')
+              { $progBloque_newsttbloque = '1'; }
+              
+              if ($progBloque_newsttbloque != '')
+              { $link->query("
+                  UPDATE progbloque
+                     SET sttbloque = '".$progBloque_newsttbloque."' 
+                   WHERE cdgbloque = '".$progBloque_cdgbloque."'");
+                
+                if ($link->affected_rows > 0)
+                { $aviso = 'El bloque fue actualizado en su status.'; }
+              }
+            } else
+            { $msg_alert = $msg_norewrite; }
+          }
+
+          if ($_GET['proceso'] == 'delete')
+          { if (substr($sistModulo_permiso,0,3) == 'rwx')
+            { $querySelect = $link->query("
+                SELECT * FROM proglote
+                 WHERE cdgbloque = '".$progBloque_cdgbloque."'");
+                
+              if ($querySelect->num_rows > 0)
+              { $aviso = 'El bloque no esta vacío, no pudo ser eliminado.'; }
+              else
+              { $link->query("
+                  DELETE FROM progbloque
+                   WHERE cdgbloque = '".$progBloque_cdgbloque."' AND 
+                         sttbloque = '0'");
+                  
+                if ($link->affected_rows > 0)
+                { $aviso = 'El bloque fue eliminado con éxito.'; }
+                else
+                { $aviso = 'El bloque no fue eliminado.'; }
+              }
+            } else
+            { $msg_alert = $msg_nodelete; } 
+          }
+        }
+      } else
+      { $msg_alert = $msg_noread; }
+    } 
+
+    if ($_POST['btnSalvar'])
+    { if (substr($sistModulo_permiso,0,2) == 'rw')
+      { if (strlen($progBloque_idbloque) > 0)
+        { $querySelect = $link->query("
+            SELECT * FROM progbloque
+             WHERE idbloque = '".$progBloque_idbloque."'");
+            
+          if ($querySelect->num_rows > 0)
+          {	$regProgBloque = $querySelect->fetch_object();
+            
+            $link->query("
+              UPDATE progbloque
+                 SET bloque = '".$progBloque_bloque."',
+                     fchbloque = '".$progBloque_fchbloque."'            
+               WHERE cdgbloque = '".$regProgBloque->cdgbloque."' AND 
+                     sttbloque = '1'");
+              
+            if ($link->affected_rows > 0) 
+            { $aviso = 'El bloque fue actualizado éxito.'; }
+          } else
+          { $querySelect = $link->query("
+            SELECT COUNT(cdgbloque) AS nBloques, 
+                   MAX(cdgbloque) AS lBloque 
+              FROM progbloque");
+
+            if ($querySelect->num_rows > 0)
+            { $regQuery = $querySelect->fetch_object();
+
+              if (str_pad($regQuery->nBloques,5,'0',STR_PAD_LEFT) == $regQuery->lBloque)
+              { $cdgbloque = ($regQuery->nBloques+1);
+                $progBloque_cdgbloque = str_pad($cdgbloque,5,'0',STR_PAD_LEFT);
+                
+                $link->query("
+                  INSERT INTO progbloque
+                    (idbloque, bloque, cdgsustrato, fchbloque, cdgbloque)
+                  VALUES
+                    ('".$progBloque_idbloque."', '".$progBloque_bloque."', '".$progBloque_cdgsustrato."', '".$progBloque_fchbloque."', '".$progBloque_cdgbloque."')");
+                
+                if ($link->affected_rows > 0) 
+                { $aviso = 'El bloque fue insertado con éxito.'; }
+              }
+            } else
+            { for ($cdgbloque = 1; $cdgbloque <= 99999; $cdgbloque++)
+              { $progBloque_cdgbloque = str_pad($cdgbloque,5,'0',STR_PAD_LEFT);
+                
+                $link->query("
+                  INSERT INTO progbloque
+                    (idbloque, bloque, cdgsustrato, fchbloque, cdgbloque)
+                  VALUES
+                    ('".$progBloque_idbloque."', '".$progBloque_bloque."', '".$progBloque_cdgsustrato."', '".$progBloque_fchbloque."', '".$progBloque_cdgbloque."')");
+                
+                if ($link->affected_rows > 0) 
+                { $aviso = 'El bloque fue insertado con éxito.'; }
+              }
+            }
+          }
+        }
+      } else
+      { $msg_alert = $msg_norewrite; }
+    }
+
+    if (substr($sistModulo_permiso,0,1) == 'r')    
+    { // Filtro de bloques de materia prima
+      if ($_POST['chkTodos'])
+      { $vertodo = 'checked'; 
+
+        $querySelect = $link->query("
+          SELECT progbloque.idbloque,
+                 progbloque.bloque,
+                 progbloque.cdgsustrato,
+                 progbloque.fchbloque,
+                 progbloque.cdgbloque,
+                 progbloque.sttbloque
+            FROM progbloque
+        GROUP BY progbloque.cdgbloque
+        ORDER BY progbloque.sttbloque DESC,
+                 progbloque.fchbloque,
+                 progbloque.idbloque"); 
+      } else
+      { $querySelect = $link->query("
+          SELECT progbloque.idbloque,
+                 progbloque.bloque,
+                 progbloque.cdgsustrato,
+                 progbloque.fchbloque,
+                 progbloque.cdgbloque,
+                 progbloque.sttbloque
+            FROM progbloque
+           WHERE progbloque.sttbloque >= '1'
+        GROUP BY progbloque.cdgbloque
+        ORDER BY progbloque.sttbloque DESC,
+                 progbloque.fchbloque,
+                 progbloque.idbloque"); }
+
+      if ($querySelect->num_rows > 0)
+      { $item = 0;
+        while ($regQuery = $querySelect->fetch_object())
+        { $item++;
+
+          $progBloques_idbloque[$item] = $regQuery->idbloque;
+          $progBloques_bloque[$item] = $regQuery->bloque;
+          $progBloques_cdgsustrato[$item] = $regQuery->cdgsustrato;
+          $progBloques_fchbloque[$item] = $regQuery->fchbloque;
+          $progBloques_cdgbloque[$item] = $regQuery->cdgbloque;
+          $progBloques_sttbloque[$item] = $regQuery->sttbloque;
+
+          $querySelect2 = $link->query("
+            SELECT proglote.cdgbloque,
+               SUM(proglote.peso) AS peso,
+                   proglote.sttlote
+              FROM progbloque,
+                   proglote
+             WHERE progbloque.cdgbloque = '".$regQuery->cdgbloque."' AND
+                   progbloque.cdgbloque = proglote.cdgbloque
+          GROUP BY proglote.cdgbloque,
+                   proglote.sttlote"); 
+
+          if ($querySelect2->num_rows > 0)
+          { while ($regQuery2 = $querySelect2->fetch_object())
+            { $progBloques_peso[$regQuery2->cdgbloque] += $regQuery2->peso;
+              $progBloques_pesos[$regQuery2->cdgbloque][$regQuery2->sttlote] = $regQuery2->peso; }
+          }
+        }
+
+        $nBloques = $item; 
+      }
+      // Final del fintro de bloques de materia prima
+
+      // Filtro de sustratos
+      $querySelect = $link->query("
+        SELECT pdtosustrato.idsustrato,
+               pdtosustrato.sustrato,
+               pdtosustrato.cdgsustrato,
+               sistproceso.proceso,
+               pdtosustrato.cdgsustrato
+          FROM sistproceso,
+               progtipo,
+               pdtosustrato
+         WHERE sistproceso.cdgproceso = progtipo.cdgproceso AND
+              (progtipo.cdgtipo = pdtosustrato.cdgtipo AND
+               pdtosustrato.sttsustrato = '1')");
+
+      if ($querySelect->num_rows > 0)
+      { $item = 0;
+
+        while ($regQuery = $querySelect->fetch_object())
+        { $item++;
+
+          $pdtoSustrato_idsustrato[$item] = $regQuery->idsustrato;
+          $pdtoSustrato_sustrato[$item] = $regQuery->sustrato; 
+          $pdtoSustrato_proceso[$item] = $regQuery->proceso;
+          $pdtoSustrato_cdgsustrato[$item] = $regQuery->cdgsustrato;
+
+          $pdtoSustratos_sustrato[$regQuery->cdgsustrato] = $regQuery->sustrato;
+          $pdtoSustratos_proceso[$regQuery->cdgsustrato] = $regQuery->proceso; 
+        }
+
+        $nSustratos = $item;
+      }
+
+      // Final del filtro de sustratos        
+    } else
+    { $msg_alert = $msg_noread; }
+
+    echo '
+      <div class="bloque">
+        <form id="frmProgBloque" name="frmProgBloque" method="POST" action="progBloque.php">
+          <article class="subbloque">
+            <label class="modulo_nombre">Bloque de materia prima</label>
+          </article>
+          <input type="checkbox" id="chkTodos" name="chkTodos" onclick="document.frmProgBloque.submit()" '.$vertodo.'><label>ver todo</label>
+          <a href="ayuda.php#Bloques"><img class="imgDerecha" src="../img_sistema/help_blue.png"/></a>
+
+          <section class="subbloque">
+            <article>
+              <label><b>id</b>entificador</label><br/>
+              <input type="text" id="txtId" name="txtId" value="'.$progBloque_idbloque.'" placeholder="Nombre corto" required/>
+            </article>
+
+            <article>
+              <label>Descripción</label><br/>
+              <input type="text" size="40" maxlength="80" id="txtNombre" name="txtNombre" value="'.$progBloque_bloque.'" placeholder="Nombre completo" required/>
+            </article>
+
+            <article>
+              <label>Sustrato</label><br/>
+              <select id="slcCdgSustrato" name="slcCdgSustrato">
+                <option>-</option>';
+
+    if ($nSustratos > 0)
+    { for ($item=1; $item<=$nSustratos; $item++)
+      { echo '
+                <option value="'.$pdtoSustrato_cdgsustrato[$item].'"';
+
+      if ($pdtoSustrato_cdgsustrato == $pdtoSustrato_cdgsustrato[$item]) { echo ' selected="selected"'; }
+      echo '>'.$pdtoSustrato_sustrato[$item].'</option>'; }              
+    }
+
+    echo '
+              </select>
+            </article>
+
+            <article>
+              <label>Fecha de recepción</label><br/>
+              <input type="date" id="dteFchBloque" name="dteFchBloque" value="'.$progBloque_fchbloque.'" required/>
+            </article>
+
+            <article><br/>
+              <input type="submit" id="btnSalvar" name="btnSalvar" value="Salvar" />
+            </article>
+          </section>
+        </form>
+      </div>';
+
+    echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Catálogo de bloques</label>
+        </article>
+        <label><b>'.$nBloques.'</b> Registros encontrados</label>';
+
+    if ($nBloques > 0)
+    { for ($item=1; $item<=$nBloques; $item++)
+      { echo '
+        <section class="listado">
+          <article>';
+
+        if ((int)$progBloques_sttbloque[$item] > 0)
+        { echo '
+            <a href="progBloque.php?cdgbloque='.$progBloques_cdgbloque[$item].'">'.$_search.'</a>
+            <a href="progLote.php?cdgbloque='.$progBloques_cdgbloque[$item].'">'.$_link.'</a>
+            <a href="progBloque.php?cdgbloque='.$progBloques_cdgbloque[$item].'&proceso=upload">'.$_excel.'</a>
+            <a href="pdf/progBloqueRpt.php?cdgbloque='.$progBloques_cdgbloque[$item].'" target="_blank">'.$_acrobat.'</a>
+            <a href="pdf/progLoteBC.php?cdgbloque='.$progBloques_cdgbloque[$item].'" target="_blank">'.$_barcode.'</a>
+            <a href="progBloque.php?cdgbloque='.$progBloques_cdgbloque[$item].'&proceso=update">'.$_power_blue.'</a>'; }
+        else
+        { echo '
+            <a href="progBloque.php?cdgbloque='.$progBloques_cdgbloque[$item].'&proceso=delete">'.$_recycle_bin.'</a>              
+            <a href="progBloque.php?cdgbloque='.$progBloques_cdgbloque[$item].'&proceso=update">'.$_power_black.'</a>'; }
+
+        echo '
+          </article>
+
+          <article>
+            <label class="textId"><b>Bloque</b> '.$progBloques_idbloque[$item].' <b>Peso</b> '.number_format($progBloques_peso[$progBloques_cdgbloque[$item]],3).' kgs </label><br/>
+            <label class="textNombre">'.$progBloques_bloque[$item].'</label>
+            <label><b>Sustrato</b> '.$pdtoSustratos_sustrato[$progBloques_cdgsustrato[$item]].'</label>
+          </article><br/>
+
+          <article align="right">';
+
+      if ($progBloques_pesos[$progBloques_cdgbloque[$item]][0] > 0)
+      { echo '<br/>
+            <label>Devuelto</label> 
+            <label title="'.number_format($progBloques_pesos[$progBloques_cdgbloque[$item]][0],2).' kgs">'.number_format((($progBloques_pesos[$progBloques_cdgbloque[$item]][0]*100)/$progBloques_peso[$progBloques_cdgbloque[$item]]),2).'%</label>'; } 
+          
+      if ($progBloques_pesos[$progBloques_cdgbloque[$item]][1] > 0)
+      { echo '<br/>
+            <label>Recibído</label>
+            <label title="'.number_format($progBloques_pesos[$progBloques_cdgbloque[$item]][1],2).' kgs">'.number_format((($progBloques_pesos[$progBloques_cdgbloque[$item]][1]*100)/$progBloques_peso[$progBloques_cdgbloque[$item]]),2).'%</label>'; } 
+
+      if ($progBloques_pesos[$progBloques_cdgbloque[$item]][7] > 0)
+      { echo '<br/>
+            <label>Liberado</label>
+            <label title="'.number_format($progBloques_pesos[$progBloques_cdgbloque[$item]][7],2).' kgs">'.number_format((($progBloques_pesos[$progBloques_cdgbloque[$item]][7]*100)/$progBloques_peso[$progBloques_cdgbloque[$item]]),2).'%</label>'; } 
+
+      if ($progBloques_pesos[$progBloques_cdgbloque[$item]][8] > 0)
+      { echo '<br/>
+            <label>Programado</label>
+            <label title="'.number_format($progBloques_pesos[$progBloques_cdgbloque[$item]][8],2).' kgs">'.number_format((($progBloques_pesos[$progBloques_cdgbloque[$item]][8]*100)/$progBloques_peso[$progBloques_cdgbloque[$item]]),2).'%</label>'; } 
+
+      if ($progBloques_pesos[$progBloques_cdgbloque[$item]][9] > 0)
+      { echo '<br/>
+            <label>Consumido</label>
+            <label title="'.number_format($progBloques_pesos[$progBloques_cdgbloque[$item]][9],2).' kgs">'.number_format((($progBloques_pesos[$progBloques_cdgbloque[$item]][9]*100)/$progBloques_peso[$progBloques_cdgbloque[$item]]),2).'%</label>'; }           
+
+        echo '  
+          </article>
+        </section><br/>';
+      }
+    }
+
+    echo '
+      </div>';
+
+    if ($msg_alert != '')
+    { echo '
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+  } else
+  { echo '
+      <div><h1>Módulo no encontrado o bloqueado.</h1></div>'; }
+  ?>
+
+    </div>
+  </body> 
+</html>

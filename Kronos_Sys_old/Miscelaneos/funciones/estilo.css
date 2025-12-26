@@ -1,0 +1,57 @@
+
+.container{  text-align: center;
+  width: 80%;    margin: 0 auto; border-radius: 10px;
+  height: auto; background: #EBEDEF;
+
+}
+
+.box{  display: inline-block;
+  margin: 5px;  width: 90%;
+  padding: 10px;  overflow: hidden;
+  text-align: center;  vertical-align: top;
+  
+}
+
+.box1{  display: inline-block;
+  margin: 5px;  width: 90%;
+  padding: 10px;  overflow: hidden;
+  text-align: center;  vertical-align: top;
+}
+
+.img{ align-content: center; 
+  float:left;  margin-right:10px;  margin-bottom:13px;  margin-top:5px;
+  width: auto;   cursor: move;  height: 18px;
+}
+.img1{   border: 1px solid #333; 
+  border-radius: 5px;  align-content: center;
+  float:left;  margin-right:10px;  margin-bottom:13px;  margin-top:5px;
+  width: 25%;   cursor: default;  height: 30px;
+}
+
+.parrafo{  font-size: 100%; background:#D0D2D3;
+  border-radius: 5px;    border: 1px solid #333; 
+  color:black; cursor:default;   width: 100%;     text-align: center;
+   height: 30px;
+}
+input[type="text"]{
+  font-size: 100%;  background:gray;
+  border-radius: 5px;    border: 1px solid #333; 
+  color:#000;  cursor: move;
+  width: 100%;  text-align: center;
+}
+input:hover, .parrafo:hover{
+  background-color:#85929E;  outline: none;
+  -webkit-transition-duration: 0.4s; -o-transition-property: background-color, color, left;
+  -o-transition-duration: 1s;
+}
+
+h3{   font-family: Sansation;  font-size: 20px; color:#105D81;}
+
+.detectar{   background: #ddd;  border: 3px dashed #aaa !important; }
+
+input[type="text"].proceso{
+width: 20%; background: none; 
+color:#105D81; border:none; 
+margin-left: -4%; margin-right:-5%; 
+cursor: default;
+}

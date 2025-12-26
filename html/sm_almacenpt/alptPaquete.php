@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" media="screen" />
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_empaque();
+
+  $sistModulo_cdgmodulo = '80020';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+    if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_POST['textusername'] AND $_POST['textpassword']) { val1dat3($_POST['textusername'], $_POST['textpassword']); }
+
+    if ($_SESSION['cdgusuario'])
+    { ma1n(); }
+    else 
+    { echo '
+      <div id="loginform">
+        <form id="login" action="/sm_almacenpt/alptPaquete.php" method="POST">';
+
+      log1n();
+
+      echo '
+        </form>
+      </div>
+    </div>
+  </body>
+</html>'; 
+
+      exit; }
+
+    // Agrega o suprime registro al arreglo
+    if ($_GET['cdgpaquete'])
+    { $alptPaquete_codigo = $_SESSION['empaque'];
+      $nPaquetes = count($alptPaquete_codigo);
+
+      for ($idPaquete=1; $idPaquete<=$nPaquetes; $idPaquete++)
+      { if ($alptPaquete_codigo[$idPaquete] != $_GET['cdgpaquete'])
+        { $newidPaquete++;
+          $newempaque_codigo[$newidPaquete] = $alptPaquete_codigo[$idPaquete]; }
+      }
+
+      $_SESSION['empaque'] = $newempaque_codigo; }
+
+    // Salva el empaque
+    if ($_POST['btn_salvar'])
+    { if (strtoupper($_POST['text_cdgpaquete']) == 'CLOSE' AND $_SESSION['cdgproducto'] != '')
+      { // Crea documento, bloquea los codigos y agregalos 
+        $alptPaquete_newempaque = true;
+
+        $alptPaquete_subcdgempaque = date('ymd');
+        for ($item = 1; $item <= 9999; $item++) 
+        { $alptPaquete_cdgempaque = $alptPaquete_subcdgempaque.str_pad($item,4,'0',STR_PAD_LEFT);
+
+          $prodDocumentoSelect = $link->query("
+            SELECT * FROM alptempaque
+             WHERE cdgempaque = '".$alptPaquete_cdgempaque."'");
+
+          if ($prodDocumentoSelect->num_rows == 0)
+          { $_SESSION['cdgempaque'] = $alptPaquete_cdgempaque;
+
+            $alptEmpaqueSelect = $link->query("
+              SELECT MAX(noempaque) AS noempaque
+                FROM alptempaque
+               WHERE cdgproducto = '".$_SESSION['cdgproducto']."' AND
+                     tpoempaque = 'C'");
+
+            if ($alptEmpaqueSelect->num_rows > 0)
+            { $regAlptEmpaque = $alptEmpaqueSelect->fetch_object();
+
+              $alptPaquete_noempaque = $regAlptEmpaque->noempaque;
+              $alptPaquete_noempaque = $alptPaquete_noempaque+1;
+
+              /*if ($regAlptEmpaque->noempaque == $regAlptEmpaque->noempaques)
+              { $alptPaquete_noempaque = $regAlptEmpaque->noempaque+1; }
+              else
+              { for ($subItem = 1; $subItem <= $regAlptEmpaque->noempaque; $subItem++)
+                { $alptEmpaqueSelect = $link->query("
+                    SELECT * FROM alptempaque
+                     WHERE cdgproducto = '".$_SESSION['cdgproducto']."' AND
+                           tpoempaque = 'C' AND 
+                           noempaque = '".$subItem."'");
+
+                  if ($alptEmpaqueSelect->num_rows > 0)
+                  { // Este número de empaque ya existe 
+                  } else
+                  { $alptPaquete_noempaque = $subItem;
+                    break; }
+                }
+              }//*/
+
+              $msg_alert .= " El NoEmpaque sera ".$alptPaquete_noempaque; 
+            } else
+            { $msg_alert .= " El NoEmpaque no ha sido iniciado."; 
+              $alptPaquete_noempaque = 1; } 
+
+            $link->query("
+              INSERT INTO alptempaque
+                (cdgempaque, cdgproducto, noempaque, tpoempaque, cdgempleado, fchempaque)
+              VALUES
+                ('".$alptPaquete_cdgempaque."', '".$_SESSION['cdgproducto']."', '".$alptPaquete_noempaque."', 'C', '".$_SESSION['cdgusuario']."', NOW())");
+
+            if ($link->affected_rows > 0)
+            { $alptPaquete_codigo = $_SESSION['empaque'];
+              $alptPaquete_cdgcantidad = $_SESSION['cantidad'];
+              $nPaquetes = count($alptPaquete_codigo);
+
+              if ($nPaquetes > 0)
+              { for ($idPaquete=1; $idPaquete<=$nPaquetes; $idPaquete++)
+                { $link->query("
+                    UPDATE prodpaquete
+                       SET cdgempaque = '".$alptPaquete_cdgempaque."'
+                     WHERE cdgpaquete = '".$alptPaquete_codigo[$idPaquete]."' AND
+                           cdgempaque = ''");
+
+                  if ($link->affected_rows == 0)
+                  { $alptPaquete_newempaque = false; 
+                    $msg_alert .= " El Paquete ".$alptPaquete_codigo[$idPaquete]." NO fue agregado."; } 
+                  else
+                  { $msg_alert .= " El Paquete ".$alptPaquete_codigo[$idPaquete]." FUE agregado."; 
+
+                    $prodPaqueteSelect = $link->query("
+                      SELECT * FROM prodpaquete
+                       WHERE cdgpaquete = '".$alptPaquete_codigo[$idPaquete]."'");
+
+                    if ($prodPaqueteSelect->num_rows > 0)
+                    { $regProdPaquete = $prodPaqueteSelect->fetch_object();
+
+                      $alptPaquete_cantidad[$idPaquete] = $regProdPaquete->cantidad; }
+
+                  }
+                } 
+
+                if ($alptPaquete_newempaque == true)
+                { for ($idPaquete=1; $idPaquete<=$nPaquetes; $idPaquete++)
+                  { $link->query("
+                      INSERT INTO alptempaquep
+                        (cdgempaque, cdgproducto, cantidad, cdgpaquete)
+                      VALUES
+                        ('".$alptPaquete_cdgempaque."', '".$_SESSION['cdgproducto']."', '".$alptPaquete_cantidad[$idPaquete]."', '".$alptPaquete_codigo[$idPaquete]."')");
+
+                    if ($link->affected_rows == 0)
+                    { $alptPaquete_newempaque = false; 
+                      $msg_alert .= " El Paquete ".$alptPaquete_codigo[$idPaquete]." NO fue agregado."; } 
+                    else
+                    { $msg_alert .= " El Paquete ".$alptPaquete_codigo[$idPaquete]." FUE agregado."; }    
+                  } 
+                  
+                  $link->query("
+                    UPDATE prodpaquete 
+                       SET sttpaquete = '9',
+                           fchmovimiento = NOW()
+                     WHERE cdgempaque = '".$alptPaquete_cdgempaque."' AND
+                           sttpaquete = '1'"); 
+
+                  $msg_alert .= " Empaque ".$alptPaquete_cdgempaque." generado con '".$link->affected_rows."' paquetes."; 
+                } else
+                { $link->query("
+                    UPDATE prodpaquete
+                       SET cdgempaque = ''
+                     WHERE cdgempaque = '".$alptPaquete_cdgempaque."'"); 
+
+                  $link->query("
+                    DELETE FROM alptempaque                    
+                     WHERE cdgempaque = '".$alptPaquete_cdgempaque."' AND 
+                           sttempaque = '1'"); 
+
+                  $msg_alert .= " El empaque NO pudo ser generado, por que alguno de los paquetes ya es parte de otro empaque."; 
+                }
+              } else
+              { $msg_alert .= " El empaque NO pudo ser generado, no contiene paquetes."; }           
+            } else
+            { $msg_alert .= " El empaque NO pudo ser generado, intentalo nuevamente."; } 
+
+            break; }
+        } 
+
+        unset($_SESSION['cdgproducto']);
+        unset($_SESSION['empaque']);
+        unset($_SESSION['cantidad']);
+      } else
+      { $alptPaquete_cdgpaquete = $_POST['text_cdgpaquete'];
+        $alptPaquete_codigo = $_SESSION['empaque'];
+        $nPaquetes = count($alptPaquete_codigo);
+
+        $prodPaqueteSelect = $link->query("
+          SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo,'-',prodpaquete.paquete) AS noop,
+                 prodrollo.amplitud,
+                 prodpaquete.cdgproducto,
+                 prodpaquete.cdgpaquete,
+                 prodpaquete.cantidad,
+                 prodpaquete.sttpaquete,
+                 pdtoimpresion.alto,
+                 pdtoimpresion.cdgimpresion
+            FROM prodlote,
+                 prodbobina,
+                 prodrollo,
+                 prodpaquete,
+                 pdtoimpresion
+           WHERE prodlote.cdglote = prodbobina.cdglote AND
+                 prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                 prodrollo.cdgrollo = prodpaquete.cdgrollo AND
+                 prodrollo.cdgproducto = pdtoimpresion.cdgimpresion AND
+                 prodpaquete.cdgpaquete = '".$alptPaquete_cdgpaquete."' AND 
+                 prodpaquete.cdgempaque = ''");
+
+        if ($prodPaqueteSelect->num_rows > 0)
+        { $regProdPaquete = $prodPaqueteSelect->fetch_object();
+          
+          $alptPaquete_noop = $regProdPaquete->noop;
+          $alptPaquete_cantidad = $regProdPaquete->cantidad;
+          $alptPaquete_cdgproducto = $regProdPaquete->cdgproducto;
+          $alptPaquete_sttpaquete = $regProdPaquete->sttpaquete;
+          $alptPaquete_cdgimpresion = $regProdPaquete->cdgimpresion;
+
+          if (trim($alptPaquete_cdgproducto) != '')
+          { $alptPaquete_cdgimpresion = $alptPaquete_cdgproducto; }
+
+          if ($nPaquetes == 0)
+          { $_SESSION['cdgproducto'] = $alptPaquete_cdgimpresion; }
+
+          if ($_SESSION['cdgproducto'] == $alptPaquete_cdgimpresion)
+          { if ($alptPaquete_sttpaquete == 1)
+            { $alptPaquete_update = true;
+              for ($idPaquete=1; $idPaquete<=$nPaquetes; $idPaquete++)
+              { if ($alptPaquete_codigo[$idPaquete] == $alptPaquete_cdgpaquete)
+                { $alptPaquete_update = false; }
+              }
+
+              if ($alptPaquete_update == true)
+              { $idPaquete = $nPaquetes+1;
+
+                $alptPaquete_codigo[$idPaquete] = $alptPaquete_cdgpaquete;
+                $alptPaquete_cdgcantidad[$idPaquete] = $alptPaquete_cantidad;
+
+                $_SESSION['empaque'] = $alptPaquete_codigo;
+                $_SESSION['cantidad'] = $alptPaquete_cdgcantidad;
+                $msg_window = 'Paquete '.$alptPaquete_noop.' agregado exitosamente.';
+
+                $_SESSION['empaque'] = $alptPaquete_codigo;
+              } 
+              else
+              { $msg_window = 'Paquete '.$alptPaquete_noop.' ya se encuentra agregado.'; }
+            } 
+            else
+            { if ($alptPaquete_sttpaquete == 9)
+              { $msg_window = 'Paquete '.$alptPaquete_noop.' EMPACADO.'; }
+            }
+          } 
+          else
+          { $msg_window = 'Paquete incompatible con el contendido actual.'; }
+        } 
+        else 
+        { $msg_window = 'Paquete no encontrado, es posible que ya sea parte de algun paquete.'; }
+      }
+    }
+
+    $alptPaquete_codigo = $_SESSION['empaque'];
+    $nPaquetes = count($alptPaquete_codigo);
+
+    echo '
+      <div class="bloque">
+        <form id="formulario" name="formulario" method="POST" action="alptPaquete.php">
+          <article class="subbloque">
+            <label class="modulo_nombre">Empaque de paquetes</label>
+          </article>
+          <label>'.$msg_window.'</label>
+          <!--<a href="ayuda.php#EmpaqueRollo"><img id="imagen_ayuda" src="../img_sistema/help_blue.png"/></a>-->
+
+          <section class="subbloque">
+            <a href="pdf/alptEmpaqueBCE.php?cdgempaque='.$_SESSION['cdgempaque'].'" target="_blank"><img class="imagen_derecha" src="../img_sistema/barcode.png"/></a>
+
+            <article>
+              <label>Paquete</label><br/>
+              <input type="text" id="text_cdgpaquete" name="text_cdgpaquete" value="'.$prodPaquete_cdgpaquete.'" autofocus required/>
+            </article>
+
+            <article>
+              <br>
+              <input type="submit" id="btn_salvar" name="btn_salvar" value="Salvar" />
+            </article>
+          </section>
+        </form>
+      </div>';
+
+    if ($nPaquetes > 0)
+    { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Contenido del empaque</label>          
+        </article>
+        <label>[<b>'.$nPaquetes.'</b>] paquetes agregados</label>
+
+        <section class="subbloque">
+          <table align="center">
+            <tr><th colspan="8"><label for="label_ttlidempaque">Paquete</label></th><tr>
+              <td colspan="8"><hr></td></tr>';
+
+      for ($idRenglon=0; $idRenglon<($nPaquetes/4); $idRenglon++)
+      { echo '
+            <tr>';
+       
+        for ($idColumna=1; $idColumna<=4; $idColumna++)
+        { $alptEmpaquePaqueteSelect = $link->query("
+            SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo,'-',prodpaquete.paquete) AS noop,
+                   prodrollo.amplitud,
+                   prodpaquete.cdgpaquete
+              FROM prodlote,
+                   prodbobina,
+                   prodrollo,
+                   prodpaquete,
+                   pdtoimpresion
+             WHERE prodlote.cdglote = prodbobina.cdglote AND
+                   prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                   prodrollo.cdgrollo = prodpaquete.cdgrollo AND
+                   prodpaquete.cdgpaquete = '".$alptPaquete_codigo[(($idRenglon*4)+$idColumna)]."' AND
+                   prodlote.cdgproducto = pdtoimpresion.cdgimpresion");
+
+          if ($alptEmpaquePaqueteSelect > 0)
+          { $regAlptEmpaque = $alptEmpaquePaqueteSelect->fetch_object();
+
+            echo '
+              <td>&nbsp;<a href="alptPaquete.php?cdgpaquete='.$regAlptEmpaque->cdgpaquete.'&proceso=delete">'.$regAlptEmpaque->cdgpaquete.'</a></td>
+              <td><b>'.$regAlptEmpaque->noop.'</b>&nbsp;</td>';
+          } else
+          { echo '
+              <td colspan="2"><b>Error: <b>'.$alptRollo_codigo[$item].'</b></td>'; }
+        }
+
+        echo '</tr>'; }
+
+      echo '
+          </table>
+        </section>
+
+      </div>'; }
+
+    if ($msg_alert != '')
+    { echo '
+      <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+
+  } else
+  { echo '
+      <div><h1>Módulo no encontrado o bloqueado.</h1></div>'; }
+?>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="mx">
+	<head>
+		<meta charset="utf-8">
+		<title>Prot&oacute;n</title>
+		<link rel="shortcut icon" href="favicon.ico">
+
+
+	</head>
+	
+
+
+		<frameset  frameborder="no" border="0">  
+			<frame src="main.php" name="cargador" />
+		</frameset> 
+
+
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" media="screen" />
+  </head>
+  <body>
+    <div id="contenedor">
+<?php
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_empaque();
+
+  $pdtoImpresionSelect = $link->query("
+    SELECT pdtoimpresion.impresion,
+           pdtoimpresion.cdgimpresion,
+     COUNT(alptempaque.noempaque)
+      FROM pdtoimpresion,
+           alptempaque
+     WHERE pdtoimpresion.cdgimpresion = alptempaque.cdgproducto AND
+           alptempaque.sttempaque = '1'
+  GROUP BY pdtoimpresion.cdgimpresion
+  ORDER BY pdtoimpresion.sttimpresion DESC,
+           pdtoimpresion.impresion");
+
+  if ($pdtoImpresionSelect->num_rows > 0)
+  { echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_nombre">Inventario de producto terminado</label>
+        </article>
+        <a href="ayuda.php#Inventario"><img id="imagen_ayuda" src="../img_sistema/help_blue.png"/></a>
+
+        <section class="subbloque">';
+
+    while ($regPdtoImpresion = $pdtoImpresionSelect->fetch_object())
+    { $alptEmpaqueRSelect = $link->query("
+        SELECT SUM(cantidad) AS millares
+          FROM alptempaque, 
+               alptempaquer
+         WHERE alptempaque.cdgempaque = alptempaquer.cdgempaque AND 
+               alptempaque.cdgproducto =  '".$regPdtoImpresion->cdgimpresion."' AND 
+               alptempaque.sttempaque =  '1'");
+
+      if ($alptEmpaqueRSelect->num_rows > 0)
+      { $regAlptEmpaqueR = $alptEmpaqueRSelect->fetch_object(); 
+
+        $alptInventario_rollos = $regAlptEmpaqueR->millares; }
+
+
+      $alptEmpaquePSelect = $link->query("
+        SELECT SUM(cantidad) AS millares
+          FROM alptempaque, 
+               alptempaquep
+         WHERE alptempaque.cdgempaque = alptempaquep.cdgempaque AND 
+               alptempaque.cdgproducto =  '".$regPdtoImpresion->cdgimpresion."' AND 
+               alptempaque.sttempaque =  '1'");
+
+      if ($alptEmpaquePSelect->num_rows > 0)
+      { $regAlptEmpaqueP = $alptEmpaquePSelect->fetch_object(); 
+
+        $alptInventario_paquetes = $regAlptEmpaqueP->millares; }
+
+      echo '
+          <article class="subbloque">
+            <label><b><a href="../sm_inspeccion/inspBuscador.php?cdgproducto='.$regPdtoImpresion->cdgimpresion.'">'.$regPdtoImpresion->impresion.'</a></b></label><br>
+            
+            <table>
+              <tr><td colspan="2"><hr></td></tr>
+              <tr><th>Empaque</th>
+                <th>Existencia</th><tr>
+              <tr><td>Paquetes</td>
+                <td align="right"><i><a href="pdf/alptInventarioC.php?cdgproducto='.$regPdtoImpresion->cdgimpresion.'">'.number_format($alptInventario_paquetes,3,'.','').'</a> mlls</i></td></tr>
+              <tr><td>Rollos</td>
+                <td align="right"><i><a href="pdf/alptInventarioQ.php?cdgproducto='.$regPdtoImpresion->cdgimpresion.'">'.number_format($alptInventario_rollos,3,'.','').'</a> mlls</i></td></tr>
+              <tr><th>Total</th>
+                <td align="right"><i><b>'.number_format(($alptInventario_paquetes+$alptInventario_rollos),3,'.','').'</b> mlls</i></td></tr>
+            </table>
+          </article><br><br>'; }
+
+    echo'
+        </section>
+      </div>'; }
+?>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Producci&oacute;n Revisado</title>
+    <link rel="stylesheet" type="text/css" href="../css/global.css" media="all">
+  </head>
+  <body><br/><?php
+
+  include '../datos/mysql.php';
+
+  $sistModulo_cdgmodulo = '60045';
+
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+     // Delimitación de semanas
+    ////////////////////////////////////////
+
+    $prodDestajo_hstano = date("Y");
+    $prodDestajo_hstmes = date("n");
+    $prodDestajo_hstdia = date("j");
+    $prodDestajo_diasmn = date("w");
+        
+    if ($prodDestajo_diasmn == 4) { $prodDestajo_dianmn = 0; } //Jueves 
+    if ($prodDestajo_diasmn == 5) { $prodDestajo_dianmn = 1; } //Viernes
+    if ($prodDestajo_diasmn == 6) { $prodDestajo_dianmn = 2; } //Sabado
+    if ($prodDestajo_diasmn == 0) { $prodDestajo_dianmn = 3; } //Domingo
+    if ($prodDestajo_diasmn == 1) { $prodDestajo_dianmn = 4; } //Lunes
+    if ($prodDestajo_diasmn == 2) { $prodDestajo_dianmn = 5; } //Martes
+    if ($prodDestajo_diasmn == 3) { $prodDestajo_dianmn = 6; } //Miercoles         
+    
+    if (($prodDestajo_hstdia-$prodDestajo_dianmn) > 0) 
+    { $prodDestajo_dsdmes = $prodDestajo_hstmes;
+      $prodDestajo_dsdano = $prodDestajo_hstano;        
+      $prodDestajo_dsddia = ($prodDestajo_hstdia-$prodDestajo_dianm); 
+    }
+    else 
+    { $prodDestajo_dsdmes = $prodDestajo_hstmes-1;
+          
+      if($prodDestajo_dsdmes == 0) 
+      { $prodDestajo_dsdmes = 12; 
+        $prodDestajo_dsdano = $prodDestajo_hstano-1; 
+      } 
+      else 
+      { $prodDestajo_dsdano = $prodDestajo_hstano; }
+        
+      $prodDestajo_diasmes = date("t", mktime(0,0,0,($prodDestajo_dsdmes),1,$prodDestajo_dsdano)); 
+      $prodDestajo_dsddia = ($prodDestajo_hstdia-$prodDestajo_dianmn)+$prodDestajo_diasmes; 
+    }
+        
+    $prodDestajo_fchinicial = $prodDestajo_dsdano.'-'.str_pad($prodDestajo_dsdmes,2,'0',STR_PAD_LEFT).'-'.str_pad($prodDestajo_dsddia,2,'0',STR_PAD_LEFT);
+    $prodDestajo_fchfinal = date("Y-m-d");
+    ////////////////////////////////////////////
+
+    $prodRevisado_cdgempleado = trim($_POST['text_empleado']);
+    $prodRevisado_cdgmaquina = trim($_POST['text_maquina']);
+    $prodRevisado_cdgrollo = trim($_POST['text_rollo']);
+    $prodRevisado_cdgdefecto = $_POST['rdo_defecto'];
+    
+    if ($_GET['cdgempleado'])
+    { $prodRevisado_cdgempleado = $_GET['cdgempleado']; }
+
+    if ($_GET['cdgmaquina'])
+    { $prodRevisado_cdgmaquina = $_GET['cdgmaquina']; }
+
+    //Buscar Empleado
+    $link_mysql = conectar();
+    $rechEmpleadoSelect = $link_mysql->query("
+      SELECT * FROM rechempleado
+      WHERE (idempleado = '".$prodRevisado_cdgempleado."' OR cdgempleado = '".$prodRevisado_cdgempleado."') AND
+        sttempleado >= '1'");
+
+    if ($rechEmpleadoSelect->num_rows > 0)
+    { // Filtra al empleado
+      $regRechEmpleado = $rechEmpleadoSelect->fetch_object();
+
+      $prodRevisado_idempleado = $regRechEmpleado->idempleado;
+      $prodRevisado_empleado = $regRechEmpleado->empleado;
+      $prodRevisado_cdgempleado = $regRechEmpleado->cdgempleado;
+
+      $rechEmpleadoSelect->close;
+
+      //Buscar Maquina Proceso 40 Fusion
+      $link_mysql = conectar();
+      $prodMaquinaSelect = $link_mysql->query("
+        SELECT * FROM prodmaquina
+        WHERE (idmaquina = '".$prodRevisado_cdgmaquina."' OR cdgmaquina = '".$prodRevisado_cdgmaquina."') AND
+          cdgproceso = '45' AND
+          sttmaquina >= '1'");
+
+      if ($prodMaquinaSelect->num_rows > 0)
+      { // Filtra la maquina
+        $regProdMaquina = $prodMaquinaSelect->fetch_object();
+
+        $prodRevisado_idmaquina = $regProdMaquina->idmaquina;
+        $prodRevisado_maquina = $regProdMaquina->maquina;
+        $prodRevisado_cdgmaquina = $regProdMaquina->cdgmaquina;
+
+        $prodMaquinaSelect->close;
+
+        //Buscar lote Proceso
+        $link_mysqli = conectar();
+        $prodRolloSelect = $link_mysqli->query("
+          SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+            prodrollo.longitud,
+            prodrollo.amplitud,
+            prodrollo.peso,
+            prodrollo.cdgrollo,
+            prodrollo.sttrollo,
+            pdtoimpresion.idimpresion,
+            pdtoimpresion.impresion,
+            pdtoimpresion.corte,
+            pdtoimpresion.cdgimpresion
+          FROM prodlote, 
+            prodbobina, 
+            prodrollo,
+            pdtoimpresion
+          WHERE prodlote.cdglote = prodbobina.cdglote AND
+            prodbobina.cdgbobina = prodrollo.cdgbobina AND
+           (prodrollo.cdgrollo = '".$prodRevisado_cdgrollo."' OR CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) = '".$prodRevisado_cdgrollo."') AND
+            prodrollo.cdgempaque = '' AND
+            prodlote.cdgproducto = pdtoimpresion.cdgimpresion
+            AND prodrollo.sttrollo = '1'");
+
+        if ($prodRolloSelect->num_rows > 0)
+        { // Filtra la bobina
+          $regProdRollo = $prodRolloSelect->fetch_object();
+
+          $prodRevisado_noop = $regProdRollo->noop;
+          $prodRevisado_longitud = $regProdRollo->longitud;
+          $prodRevisado_amplitud = $regProdRollo->amplitud;
+          $prodRevisado_peso = $regProdRollo->peso;          
+          $prodRevisado_cdgrollo = $regProdRollo->cdgrollo;
+          $prodRevisado_sttrollo = $regProdRollo->sttrollo;
+          
+          $prodRevisado_impresion = $regProdRollo->impresion;
+
+          $text_longitud = 'autofocus';
+          $msg_alert = 'Ingresar nueva longitud.';
+
+          if (is_numeric($_POST['text_longitud']) AND ($_POST['text_longitud'] >= 100) AND ($_POST['text_longitud'] < 1000))
+          { $prodRevisado_longitudrollo = $_POST['text_longitud']; 
+      
+            if (is_numeric($_POST['text_bandera']))
+            { $prodRevisado_banderarollo = $_POST['text_bandera'];    
+              
+              if (is_numeric($_POST['text_peso']))
+              { if (is_numeric($_POST['text_longitud']))
+                { $prodRevisado_pesorollo = $_POST['text_peso']; }
+                else
+                { $prodRevisado_pesorollo = 0; }
+
+                if (is_numeric($_POST['text_merma']))
+                { $prodRevisado_mermarollo = $_POST['text_merma']; }
+                else
+                { $prodRevisado_mermarollo = 0; }
+
+                if ($_POST['button_salvar'])
+                { $fchoperacion = date('Y-m-d');
+
+                  $link_mysqli = conectar();
+                  $prodRolloOpeInsert = $link_mysqli->query("
+                    INSERT INTO prodrolloope
+                      (cdgrollo, cdgoperacion, cdgempleado, cdgmaquina, longitud, longitudfin, peso, merma, numbandera, cdgdefecto, fchoperacion, fchmovimiento)
+                    VALUES
+                      ('".$prodRevisado_cdgrollo."', '40006', '".$prodRevisado_cdgempleado."', '".$prodRevisado_cdgmaquina."', '".$prodRevisado_longitud."', '".$prodRevisado_longitudrollo."', '".$prodRevisado_pesorollo."', '".$prodRevisado_mermarollo."', '".$prodRevisado_banderarollo."', '".$prodRevisado_cdgdefecto."', '".$fchoperacion."', NOW())");
+
+                  $link_mysqli = conectar();
+                  $link_mysqli->query("
+                    UPDATE prodrollo
+                    SET sttrollo = '6',
+                      longitud = '".$prodRevisado_longitudrollo."',
+                      bandera = '".$prodRevisado_banderarollo."',
+                      peso = '".$prodRevisado_pesorollo."',
+                      fchmovimiento = NOW()
+                    WHERE cdgrollo = '".$prodRevisado_cdgrollo."' AND
+                      sttrollo = '1'");
+
+                  if ($link_mysqli->affected_rows > 0) 
+                  { $msg_alert = 'Rollo actualizado, '.$prodRevisado_noop.' REVISADO.'; }
+                  else
+                  { $msg_alert = 'Rollo Revisado anteriormente.'; }
+
+		  $prodRevisado_cdgrollo = '';
+                }
+              }
+              else
+              { $prodRollo_pesorollo = '';
+                $msg_alert = 'Ingresar nuevo peso.';
+                $text_peso = 'autofocus'; }
+            } else
+            { $prodRollo_banderarollo = '';
+              $msg_alert = 'Ingresar cantidad de banderas.';
+              $text_bandera = 'autofocus'; }
+          } else
+          { $prodRevisado_longitudrollo = '';
+            $msg_alert = 'Ingresar nueva longitud.';
+            $text_longitud = 'autofocus'; } 
+            $text_rollo = 'autofocus';
+        } else
+        { if (substr($sistModulo_permiso,0,2) == 'rw')
+          { $link_mysqli = conectar();
+            $prodRolloSelect = $link_mysqli->query("
+              SELECT CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+                prodrollo.longitud,
+                prodrollo.amplitud,
+                prodrollo.bandera,
+                prodrollo.peso,
+                prodrollo.cdgrollo,
+                prodrollo.sttrollo,
+                pdtoimpresion.idimpresion,
+                pdtoimpresion.impresion,
+                pdtodiseno.alto,
+                pdtoimpresion.cdgimpresion
+              FROM prodlote, 
+                prodbobina, 
+                prodrollo,
+                pdtodiseno,
+                pdtoimpresion
+              WHERE prodlote.cdglote = prodbobina.cdglote AND
+                prodbobina.cdgbobina = prodrollo.cdgbobina AND
+               (prodrollo.cdgrollo = '".$prodRevisado_cdgrollo."' OR CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) = '".$prodRevisado_cdgrollo."') AND
+                prodrollo.cdgempaque = '' AND
+                prodlote.cdgproducto = pdtoimpresion.cdgimpresion AND
+                pdtoimpresion.cdgdiseno = pdtodiseno.cdgdiseno AND 
+                prodrollo.sttrollo = '6'");
+
+
+            if ($prodRolloSelect->num_rows > 0)
+            { // Filtra la bobina
+              $regProdRollo = $prodRolloSelect->fetch_object();
+
+              $prodRevisado_noop = $regProdRollo->noop;
+              $prodRevisado_longitud = $regProdRollo->longitud;
+              $prodRevisado_amplitud = $regProdRollo->amplitud;
+              $prodRevisado_peso = $regProdRollo->peso;
+              $prodRevisado_bandera = $regProdRollo->bandera;
+              $prodRevisado_cdgrollo = $regProdRollo->cdgrollo;
+              $prodRevisado_sttrollo = $regProdRollo->sttrollo;
+              
+              $prodRevisado_impresion = $regProdRollo->impresion;
+
+              $text_longitud = 'autofocus';
+              $msg_alert = 'Ingresar nueva longitud.';
+
+              if (is_numeric($_POST['text_longitud']))
+              { $prodRevisado_longitudrollo = $_POST['text_longitud']; 
+          
+                if (is_numeric($_POST['text_bandera']))
+                { $prodRevisado_banderarollo = $_POST['text_bandera'];    
+                  
+                  if (is_numeric($_POST['text_peso']))
+                  { if (is_numeric($_POST['text_longitud']))
+                    { $prodRevisado_pesorollo = $_POST['text_peso']; }
+                    else
+                    { $prodRevisado_pesorollo = 0; }
+
+                    if (is_numeric($_POST['text_merma']))
+                    { $prodRevisado_mermarollo = $_POST['text_merma']; }
+                    else
+                    { $prodRevisado_mermarollo = 0; }
+
+                    if ($_POST['button_salvar'])
+                    { $fchoperacion = date('Y-m-d');
+
+                      $link_mysqli = conectar();
+                      $prodRolloOpeInsert = $link_mysqli->query("
+                        INSERT INTO prodrolloope
+                          (cdgrollo, cdgoperacion, cdgempleado, cdgmaquina, longitud, peso, merma, numbandera, cdgdefecto, fchoperacion, fchmovimiento)
+                        VALUES
+                          ('".$prodRevisado_cdgrollo."', '4C006', '".$_SESSION['cdgusuario']."', '00001', '".$prodRevisado_longitudrollo."', '".$prodRevisado_pesorollo."', '".$prodRevisado_mermarollo."', '".$prodRevisado_banderarollo."', '".$prodRevisado_cdgdefecto."', '".$fchoperacion."', NOW())");
+
+                      $link_mysqli = conectar();
+                      $link_mysqli->query("
+                        UPDATE prodrolloope
+                        SET longitud = '".$prodRevisado_longitudrollo."',
+                          numbandera = '".$prodRevisado_banderarollo."',
+                          peso = '".$prodRevisado_pesorollo."',
+                          merma = '".$prodRevisado_mermarollo."',
+                          cdgdefecto = '".$prodRevisado_cdgdefecto."'
+                        WHERE cdgrollo = '".$prodRevisado_cdgrollo."' AND
+                          cdgoperacion = '40006'");
+
+                      $link_mysqli = conectar();
+                      $link_mysqli->query("
+                        UPDATE prodrollo
+                        SET longitud = '".$prodRevisado_longitudrollo."',
+                          bandera = '".$prodRevisado_banderarollo."',
+                          peso = '".$prodRevisado_pesorollo."',
+                          fchmovimiento = NOW()
+                        WHERE cdgrollo = '".$prodRevisado_cdgrollo."' AND
+                          sttrollo = '6'");
+
+                      if ($link_mysqli->affected_rows > 0) 
+                      { $msg_alert = 'Rollo actualizado, '.$prodRevisado_noop.' REVISADO.'; }
+                      else
+                      { $msg_alert = 'Rollo Revisado anteriormente.'; }
+
+                      $prodRevisado_cdgrollo = '';
+                    }
+                  }
+                  else
+                  { $prodRollo_pesorollo = '';
+                    $msg_alert = 'Ingresar nuevo peso.';
+                    $text_peso = 'autofocus'; }
+                } else
+                { $prodRollo_banderarollo = '';
+                  $msg_alert = 'Ingresar cantidad de banderas.';
+                  $text_bandera = 'autofocus'; }
+              } else
+              { $prodRevisado_longitudrollo = '';
+                $msg_alert = 'Ingresar nueva longitud.';
+                $text_longitud = 'autofocus'; } 
+                $text_rollo = 'autofocus';
+            }
+          } else
+          { $prodRevisado_cdgrollo = '';
+            $msg_alert = 'Ingresar informacion de rollo correcta.';
+            $text_rollo = 'autofocus'; } 
+        }
+      } else
+      { $prodRevisado_cdgmaquina = '';
+        $msg_alert = 'Ingresar informacion de maquina.';
+        $text_maquina = 'autofocus'; }
+    } else
+    { $prodRevisado_cdgempleado = '';
+      $msg_alert = 'Ingresar informacion de empleado.';
+      $text_empleado = 'autofocus'; }
+
+    if ($prodRevisado_cdgempleado == '' OR $prodRevisado_cdgmaquina == '' OR $prodRevisado_cdgrollo == '')
+    { echo '
+    <form id="form_produccion" name="form_produccion" method="post" action="prodRevisado.php"/>
+      <table align="center">
+        <thead>
+          <tr>
+            <th colspan="3">'.$sistModulo_modulo.'</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><label for="lbl_ttlempleado">Empleado</label><br />
+              <input type="text" style="width:120px" id="text_empleado" name="text_empleado" value="'.$prodRevisado_idempleado.'" '.$text_empleado.' required/></td>
+            <td><label for="lbl_ttlmaquina">M&aacute;quina</label><br />
+              <input type="text" style="width:120px" id="text_maquina" name="text_maquina" value="'.$prodRevisado_idmaquina.'" '.$text_maquina.' required/></td>
+            <td><label for="lbl_ttlrollo">Rollo</label><br />
+              <input type="text" style="width:120px" id="text_rollo" name="text_rollo" value="'.$prodRevisado_cdgrollo.'" '.$text_rollo.' required/></td></tr>
+        </tbody>
+        <tfoot>
+          <tr><th colspan="3" align="right"><input type="submit" id="button_buscar" name="button_buscar" value="Buscar" /></th></tr>
+        </tfoot>
+      </table>
+    </form>'; }
+    else
+    { echo '
+    <form id="form_produccion" name="form_produccion" method="post" action="prodRevisado.php"/>
+      <input type="hidden" id="text_empleado" name="text_empleado" value="'.$prodRevisado_cdgempleado.'" />
+      <input type="hidden" id="text_maquina" name="text_maquina" value="'.$prodRevisado_cdgmaquina.'" />
+      <input type="hidden" id="text_rollo" name="text_rollo" value="'.$prodRevisado_cdgrollo.'" />
+      
+      <table align="center">
+        <thead>
+          <tr><th colspan="3">'.$sistModulo_modulo.'</th></tr>
+        </thead>
+        <tbody>
+          <tr><th>Informaci&oacute;n</th>
+            <th>Captura</th>
+            <th>Defecto</th></tr>
+          <tr><td>
+              <label for="lbl_ttlnoop"><strong>NoOP</strong></label><br />
+              <label for="lbl_noop"><a href="prodRevisado.php?cdgempleado='.$prodRevisado_idempleado.'&cdgmaquina='.$prodRevisado_idmaquina.'" target="cargador"><h1>'.$prodRevisado_noop.'</h1></a></label><br />
+              <label for="lbl_ttlimpresion"><strong>'.utf8_decode('Impresión').'</strong></label><br />
+              <label for="lbl_impresion">&nbsp;<em><strong>'.$prodRevisado_idimpresion.'</strong> '.$prodRevisado_impresion.'</em></label><br />
+              <label for="lbl_ttllongitudori"><strong>Longitud</strong></label><br />
+              <label for="lbl_longitudori">&nbsp;<em><strong>'.number_format($prodRevisado_longitud,2).'</strong>  Metros</em></label><br />
+              <label for="lbl_ttlpesoori"><strong>Peso</strong></label><br />
+              <label for="lbl_pesoori">&nbsp;<em><strong>'.number_format($prodRevisado_peso,3).'</strong> Kilogramos</em></label><br />
+              <label for="lbl_ttlanchoori"><strong>Ancho en manga</strong></label><br />
+              <label for="lbl_anchoori">&nbsp;<em><strong>'.number_format($prodRevisado_amplitud).'</strong> '.utf8_decode('Milímetros').'</em></label><br /></td>
+            <td><label for="ttl_longitud"><strong>Longitud</strong></label><br/>
+              <input type="text" id="text_longitud" name="text_longitud" style="width:80px; text-align:right;" maxlenght="16" value="'.$prodRevisado_longitud.'" title="Nueva Longitud del rollo" '.$text_longitud.' required/><br /><br />
+              <label for="ttl_ttlpeso"><strong>Peso</strong></label><br/>
+              <input type="text" id="text_peso" name="text_peso" style="width:80px; text-align:right;" maxlenght="16" value="'.$prodRevisado_peso.'" title="Nuevo Peso del rollo" '.$text_peso.' required/><br /><br />
+              <label for="ttl_ttlbandera"><strong>Banderas</strong></label><br/>
+              <input type="text" id="text_bandera" name="text_bandera" style="width:80px; text-align:right;" maxlenght="16" value="'.$prodRevisado_bandera.'" title="Cantidad de banderas por rollo" '.$text_bandera.' required/><br /></td>
+            <td width="200">
+              <label for="ttl_ttlmerma"><strong>Merma</strong></label><br />
+              <input type="text" id="text_merma" name="text_merma" style="width:80px; text-align:right;" maxlenght="16" value="'.$prodRevisado_mermarollo.'" title="Cantidad de merma por rollo" '.$text_merma.' required/><br /><br />';
+
+      $link_mysqli = conectar();
+      $prodDefectoSelect = $link_mysqli->query("
+        SELECT proddefecto.cdgdefecto,
+          proddefecto.defecto,
+          proddefectope.cdgoperacion,
+          proddefectope.detalle
+        FROM proddefecto, 
+          proddefectope 
+        WHERE proddefecto.cdgdefecto = proddefectope.cdgdefecto AND
+          proddefectope.cdgoperacion = '40006'
+        ORDER BY proddefecto.cdgdefecto");
+
+      if ($prodDefectoSelect->num_rows > 0)
+      { while ($regQuery = $prodDefectoSelect->fetch_object())
+        { echo '
+              <input type="radio" name="rdo_defecto" id="rdo_defecto" value="'.$regQuery->cdgdefecto.'" required />
+              <label for="lbl_ttl'.$regQuery->cdgdefecto.'"><strong>'.$regQuery->defecto.'</strong></label><br />
+              <label for="lbl_ttl'.$regQuery->cdgdefecto.$regQuery->cdgoperacion.'"><em>'.$regQuery->detalle.'</em></label><br /><br />'; }
+      }
+
+      echo '</td></tr>
+          <tr><td colspan="3">
+              <label for="lbl_ttlempleado"><strong>Empleado</strong></label><br />
+              <label for="lbl_empleado">&nbsp;<em><strong>'.$prodRevisado_idempleado.'</strong> '.$prodRevisado_empleado.'</em></label><br />
+              <label for="lbl_ttlmaquina"><strong>'.utf8_decode('Máquina').'</strong></label><br />
+              <label for="lbl_maquina">&nbsp;<em><strong>'.$prodRevisado_idmaquina.'</strong> '.$prodRevisado_maquina.'</em></label></td></tr>
+        </tbody>
+        <tfoot>
+          <tr><th colspan="3" align="right">
+              <input type="submit" id="button_salvar" name="button_salvar" value="Salvar" /></th></tr>
+        </tfoot>
+      </table>
+    </form>'; }
+
+    $link_mysqli = conectar();
+    $prodRolloOpeMermaByCdgDefecto = $link_mysqli->query("
+      SELECT prodrolloope.cdgdefecto, 
+        proddefecto.defecto, 
+        proddefectope.detalle, 
+        SUM(merma) AS merma
+      FROM prodrolloope,
+        proddefecto,
+        proddefectope
+      WHERE (prodrolloope.fchoperacion = '".$prodDestajo_fchfinal."' AND
+        prodrolloope.cdgoperacion = '40006') AND
+        prodrolloope.cdgdefecto = proddefecto.cdgdefecto AND
+       (proddefecto.cdgdefecto = proddefectope.cdgdefecto AND
+        proddefectope.cdgoperacion = prodrolloope.cdgoperacion)
+      GROUP BY prodrolloope.cdgdefecto, 
+        proddefecto.defecto,
+        proddefectope.detalle");
+
+    if ($prodRolloOpeMermaByCdgDefecto->num_rows > 0)
+    { echo '<br />
+    <table align="center">
+      <thead>
+        <tr><th>Defecto</th><th>Merma</th></tr>
+      <thead>
+      <tbody>';
+
+      while ($regQuery = $prodRolloOpeMermaByCdgDefecto->fetch_object())
+      { echo '
+        <tr><td><strong>'.$regQuery->defecto.'</strong><br /><em>'.$regQuery->detalle.'</em></td>
+          <td><strong>'.number_format($regQuery->merma,3).'</strong></td></tr>';}
+
+      echo '
+      </tbody>
+    </table>'; }
+
+     // Filtro de empleados por jornada
+    //////////////////////////////////////
+    $link_mysqli = conectar();
+    $prodPaqueteEmpleados = $link_mysqli->query("
+      SELECT prodrolloope.cdgempleado, 
+        rechempleado.empleado
+      FROM prodrolloope, 
+        rechempleado
+      WHERE cdgoperacion = '40006' AND
+        prodrolloope.cdgempleado = rechempleado.cdgempleado AND
+        prodrolloope.fchmovimiento LIKE '".$prodDestajo_fchfinal."%'
+      GROUP BY prodrolloope.cdgempleado
+      ORDER BY rechempleado.empleado");
+
+    $id_empleado = 1;
+    while ($regProdEmpleado = $prodPaqueteEmpleados->fetch_object())
+    { $prodData_cdgempleado[$id_empleado] = $regProdEmpleado->cdgempleado;
+      $prodData_empleado[$id_empleado] = $regProdEmpleado->empleado; 
+
+      $id_empleado++; }
+
+    $num_empleados = $prodPaqueteEmpleados->num_rows;
+
+     // Filtro de horas por jornada
+    //////////////////////////////////////
+    $link_mysqli = conectar();
+    $prodRolloOpeSelect = $link_mysqli->query("
+      SELECT CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS horas
+      FROM prodrolloope
+      WHERE cdgoperacion = '40006' AND
+        fchmovimiento LIKE '".$prodDestajo_fchfinal."%'
+      GROUP BY SUBSTRING(fchmovimiento,1,14)");
+
+    $id_hora = 1;
+    while ($regProdHorario = $prodRolloOpeSelect->fetch_object())
+    { $prodData_hora[$id_hora] = $regProdHorario->horas; 
+
+      $id_hora++; }
+
+    $num_horas = $prodRolloOpeSelect->num_rows; 
+
+     // Filtro de produccion por jornada
+    //////////////////////////////////////
+    $link_mysqli = conectar();
+    $prodRolloOpeSelect = $link_mysqli->query("
+      SELECT cdgempleado, 
+        CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS hora, 
+        SUM(longitud) AS longitud, 
+        SUM(merma) AS merma, 
+        SUM(numbandera) AS bandera
+      FROM prodrolloope
+      WHERE cdgoperacion = '40006' AND
+        fchmovimiento LIKE '".$prodDestajo_fchfinal."%'
+      GROUP BY cdgempleado, SUBSTRING(fchmovimiento,1,14)");
+
+    while ($regQuery = $prodRolloOpeSelect->fetch_object())
+    { $prodData_metros[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->longitud;
+      $prodData_metrosxempleado[$regQuery->cdgempleado] += $regQuery->longitud;
+      $prodData_metrosxhora[$regQuery->hora] += $regQuery->longitud;
+      $prodData_metrosxdia += $regQuery->longitud;
+
+      $prodData_merma[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->merma;
+      $prodData_mermaxempleado[$regQuery->cdgempleado] += $regQuery->merma;
+      $prodData_mermaxhora[$regQuery->hora] += $regQuery->merma;
+      $prodData_mermaxdia += $regQuery->merma;
+
+      $prodData_banderas[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->bandera;
+      $prodData_banderasxempleado[$regQuery->cdgempleado] += $regQuery->bandera;
+      $prodData_banderasxhora[$regQuery->hora] += $regQuery->bandera;
+      $prodData_banderasxdia += $regQuery->bandera; }
+
+    echo '<br />
+    <table align="center">
+      <thead>
+        <tr><td></td>';
+
+    for ($id_empleado=1; $id_empleado<=$num_empleados; $id_empleado++)
+    { echo '
+          <td colspan="3"><strong>'.$prodData_empleado[$id_empleado].'</strong></td>'; }
+
+    echo '
+          <td colspan="3"><b>Suma por hora</b><td>
+        <tr align="right"><td><b>Horarios</b></td>';
+
+    for ($id_empleado=1; $id_empleado<=$num_empleados; $id_empleado++)
+    { echo '
+          <th>Metros</th>
+          <th>Merma</th>
+          <th>Banderas</th>'; }
+
+    echo '
+          <td>Metros</td>
+          <td>Merma</td>
+          <td>Banderas</td><td>
+        </tr>
+      </thead>
+      <tbody>';
+
+    for ($id_hora=1; $id_hora<=$num_horas; $id_hora++)
+    { echo '
+        <tr align="right">
+          <th>'.$prodData_hora[$id_hora].'</th>';
+
+      for ($id_empleado=1; $id_empleado<=$num_empleados; $id_empleado++)
+      { echo '
+          <td>'.number_format($prodData_metros[$prodData_cdgempleado[$id_empleado]][$prodData_hora[$id_hora]],2).'</td> 
+          <td>'.number_format($prodData_merma[$prodData_cdgempleado[$id_empleado]][$prodData_hora[$id_hora]],3).'</td> 
+          <td align="center">'.$prodData_banderas[$prodData_cdgempleado[$id_empleado]][$prodData_hora[$id_hora]].'</td>'; }
+
+      echo '
+          <th>'.number_format($prodData_metrosxhora[$prodData_hora[$id_hora]],2).'</th>
+          <th>'.number_format($prodData_mermaxhora[$prodData_hora[$id_hora]],3).'</th>
+          <th align="center">'.$prodData_banderasxhora[$prodData_hora[$id_hora]].'</th>
+        <tr>'; } 
+
+    echo '
+        <tr align="right"><td>Totales</td>';
+
+    for ($id_empleado=1; $id_empleado<=$num_empleados; $id_empleado++)
+    { echo '
+          <th>'.number_format($prodData_metrosxempleado[$prodData_cdgempleado[$id_empleado]],2).'</th> 
+          <th>'.number_format($prodData_mermaxempleado[$prodData_cdgempleado[$id_empleado]],3).'</th> 
+          <th align="center">'.$prodData_banderasxempleado[$prodData_cdgempleado[$id_empleado]].'</th>'; }
+
+    echo '
+          <td><strong>'.number_format($prodData_metrosxdia,2).'</strong></td>
+          <td><strong>'.number_format($prodData_mermaxdia,3).'</strong></td>
+          <td align="center"><strong>'.$prodData_banderasxdia.'</strong></td>
+        </tr>
+      </tbody>
+    </table>';
+
+    if ($msg_alert != '')
+    { echo '
+    <script type="text/javascript"> alert("'.$msg_alert.'"); </script>'; }
+  } else
+  { echo '
+    <br/><div align="center"><h1>M&oacute;dulo no encontrado o bloqueado.</h1></div>'; }
+  ?>
+
+  </body>
+</html>

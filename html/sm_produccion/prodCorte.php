@@ -1,0 +1,536 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Registro del Corte</title>
+    <link rel="stylesheet" type="text/css" href="../css/2014.css" />
+  </head>
+  <body>
+    <div id="contenedor">
+      <section>
+       
+        <Label><h1>Termoencogible</h1></label>
+      </section><?php
+
+  include '../datos/mysql.php';
+  $link = conectar();
+
+  m3nu_produccion();
+
+  $sistModulo_cdgmodulo = '60050';
+  $sistModulo_modulo = sistModulo($sistModulo_cdgmodulo);
+
+  if ($sistModulo_modulo != '')
+  { if ($_GET['mode']=='logout') { cl0s3(); }
+
+    if ($_SESSION['cdgusuario'])
+    { $sistModulo_permiso = sistPermiso($sistModulo_cdgmodulo, $_SESSION['cdgusuario']);
+
+      ma1n(); }
+
+    //Buscame los datos ingresados
+    $prodCorte_fecha = date("Y-m-d");
+    $prodCorte_cdgempleado = trim($_POST['textCdgEmpleado']);
+    $prodCorte_cdgmaquina = trim($_POST['textCdgMaquina']);
+    $prodCorte_cdgrollo = trim($_POST['textCdgRollo']);    
+
+    if ($_GET['cdgempleado'])
+    { $prodCorte_cdgempleado = $_GET['cdgempleado']; }
+
+    if ($_GET['cdgmaquina'])
+    { $prodCorte_cdgmaquina = $_GET['cdgmaquina']; }
+
+    //Buscar Empleado    
+    $rechEmpleadoSelect = $link->query("
+      SELECT * FROM rechempleado
+       WHERE (idempleado = '".$prodCorte_cdgempleado."' OR 
+              cdgempleado = '".$prodCorte_cdgempleado."') AND 
+              sttempleado >= '1'");
+
+    if ($rechEmpleadoSelect->num_rows > 0)
+    { $regRechEmpleado = $rechEmpleadoSelect->fetch_object();
+
+      $prodCorte_idempleado = $regRechEmpleado->idempleado;
+      $prodCorte_empleado = $regRechEmpleado->empleado;
+      $prodCorte_cdgempleado = $regRechEmpleado->cdgempleado;
+
+      //Buscar Maquina      
+      $prodMaquinaSelect = $link->query("
+        SELECT * FROM prodmaquina
+         WHERE (idmaquina = '".$prodCorte_cdgmaquina."' OR 
+                cdgmaquina = '".$prodCorte_cdgmaquina."') AND 
+                cdgsubproceso = '005' AND 
+                sttmaquina >= '1'");
+
+      if ($prodMaquinaSelect->num_rows > 0)
+      { $regProdMaquina = $prodMaquinaSelect->fetch_object();
+
+        $prodCorte_idmaquina = $regProdMaquina->idmaquina;
+        $prodCorte_maquina = $regProdMaquina->maquina;
+        $prodCorte_cdgmaquina = $regProdMaquina->cdgmaquina;
+
+        //Buscar rollo        
+        $prodRolloSelect = $link->query("
+          SELECT proglote.idlote,
+                 proglote.lote,
+                 proglote.tarima,
+                 prodlote.serie,
+          CONCAT(prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) AS noop,
+                 pdtodiseno.diseno,
+                 pdtoimpresion.paquete,
+                 pdtoimpresion.impresion,
+                 pdtojuego.altura,
+                 prodrollo.cdgproducto,
+                 prodrollo.longitud,
+                 prodrollo.amplitud,
+                 prodrollo.peso,
+                 prodrollo.sttrollo
+            FROM proglote,
+                 prodlote,
+                 prodloteope,
+                 prodbobina,
+                 prodrollo,
+                 pdtodiseno,
+                 pdtoimpresion,
+                 pdtojuego
+          WHERE (proglote.cdglote = prodlote.cdglote AND
+                 prodlote.cdglote = prodbobina.cdglote AND
+                 prodbobina.cdgbobina = prodrollo.cdgbobina) AND
+                (prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgoperacion = '20001' AND
+                 prodloteope.cdgjuego = pdtojuego.cdgjuego) AND
+                (prodrollo.cdgrollo = '".$prodCorte_cdgrollo."' OR 
+          CONCAT(prodlote.serie,'.',prodlote.noop,'-',prodbobina.bobina,'-',prodrollo.rollo) = '".$prodCorte_cdgrollo."') AND
+                (pdtoimpresion.cdgimpresion = prodrollo.cdgproducto) AND
+                (pdtojuego.cdgimpresion = pdtoimpresion.cdgimpresion AND
+                 pdtodiseno.cdgdiseno = pdtoimpresion.cdgdiseno)");
+
+        if ($prodRolloSelect->num_rows > 0)
+        { $regProdRollo = $prodRolloSelect->fetch_object();
+
+          $prodCorte_idlote = $regProdRollo->idlote;
+          $prodCorte_lote = $regProdRollo->lote;
+          $prodCorte_tarima = $regProdRollo->tarima;
+          $prodCorte_serie = $regProdRollo->serie;
+          $prodCorte_noop = $regProdRollo->noop;
+          $prodCorte_diseno = $regProdRollo->diseno;
+          $prodCorte_impresion = $regProdRollo->impresion;
+          $prodCorte_alto = $regProdRollo->altura; 
+          $prodCorte_paquete = $regProdRollo->paquete; 
+          $prodCorte_cdgproducto = $regProdRollo->cdgproducto;
+          $prodCorte_longitud = $regProdRollo->longitud;
+          $prodCorte_amplitud = $regProdRollo->amplitud;
+          $prodCorte_peso = $regProdRollo->peso;          
+          $prodCorte_sttrollo = $regProdRollo->sttrollo;
+
+          if ($_POST['bttnSalvar'])
+          { $fchoperacion = date('Y-m-d');
+
+            if ($prodCorte_sttrollo == '1' OR $prodCorte_sttrollo == '6')
+            { // Generar etiquetas
+              if ($prodCorte_paquete > 0)
+              { $nPaquetes = number_format((($prodCorte_longitud/$prodCorte_alto)/$prodCorte_paquete));
+                
+                if ($nPaquetes > 0)
+                { $link->query("
+                    INSERT INTO prodrolloope
+                      (cdgrollo, cdgoperacion, cdgempleado, cdgmaquina, longitud, peso, fchoperacion, fchmovimiento)
+                    VALUES
+                      ('".$prodCorte_cdgrollo."', '50001', '".$prodCorte_cdgempleado."', '".$prodCorte_cdgmaquina."', '".$prodCorte_longitud."', '".$prodCorte_peso."', '".$fchoperacion."', NOW())");
+
+                  for ($item = 1; $item <= $nPaquetes; $item++)
+                  { $prodCorte_cdgpaquete = substr($prodCorte_cdgrollo,0,10).str_pad($item,2,'0',STR_PAD_LEFT);
+
+                    $link->query("
+                      INSERT INTO prodpaquete
+                        (cdgrollo, paquete, cdgproducto, cantidad, fchmovimiento, cdgpaquete)
+                      VALUES
+                        ('".$prodCorte_cdgrollo."', '".$item."', '".$prodCorte_cdgproducto."', '".$prodCorte_paquete."', NOW(), '".$prodCorte_cdgpaquete."')");
+
+                    $link->query("
+                      INSERT INTO prodpaqueteope
+                        (cdgpaquete, cdgoperacion, cdgempleado, cdgmaquina, fchoperacion, fchmovimiento)
+                      VALUES
+                        ('".$prodCorte_cdgpaquete."', '50001', '".$prodCorte_cdgempleado."', '".$prodCorte_cdgmaquina."', '".$fchoperacion."', NOW())"); }
+		
+
+                  $link->query("
+                    UPDATE prodrollo 
+                       SET fchmovimiento = NOW(),
+                           sttrollo = '5'
+                     WHERE cdgrollo = '".$prodCorte_cdgrollo."'");
+
+                  $msg_modulo = '<a href="pdf/prodPaquetesBC.php?cdgrollo='.$prodCorte_cdgrollo.'">Generar etiquetas</a>';
+                } else
+                { $msg_alert = "Longitud insuficiente."; }
+              } else
+              { $msg_alert = "Producto bloqueado para corte."; }
+            }
+        //Linea modificada por EC el día 28/12/2018
+            if ($regProdRollo->sttrollo == '5' and $regProdRollo->sttrollo!='1' and $regProdRollo->sttrollo!='6')
+            { $mensajin=$prodCorte_cdgrollo;
+ // Verificar etiquetas
+              if (substr($sistModulo_permiso,0,3) == 'rwx')
+              { if ($prodCorte_paquete > 0)
+                { $nPaquetes = number_format((($prodCorte_longitud/$prodCorte_alto)/$prodCorte_paquete));
+              
+                  if ($nPaquetes > 0)
+                  { $prodPaqueteSelect = $link->query("
+                      SELECT * FROM prodpaquete
+                       WHERE cdgrollo = '".$prodCorte_cdgrollo."'");
+
+                    if ($nPaquetes > $prodPaqueteSelect->num_rows)
+                    { // Genera los códigos faltantes
+                      $paquetesActivos = $prodPaqueteSelect->num_rows;
+
+                      for ($item = 1; $item <= $nPaquetes; $item++)
+                      { $prodCorte_cdgpaquete = substr($prodCorte_cdgrollo,0,10).str_pad($item,2,'0',STR_PAD_LEFT);
+
+                        if ($item > $paquetesActivos)
+                        { $link->query("
+                            INSERT INTO prodpaquete
+                              (cdgrollo, paquete, cdgproducto, fchmovimiento, cdgpaquete)
+                            VALUES
+                              ('".$prodCorte_cdgrollo."', '".$item."', '".$prodCorte_cdgproducto."', NOW(), '".$prodCorte_cdgpaquete."')");
+
+                          $link->query("
+                            INSERT INTO prodpaqueteope
+                              (cdgpaquete, cdgoperacion, cdgempleado, cdgmaquina, fchoperacion, fchmovimiento)
+                            VALUES
+                              ('".$prodCorte_cdgpaquete."', '50001', '".$prodCorte_cdgempleado."', '".$prodCorte_cdgmaquina."', '".$fchoperacion."', NOW())");
+                        } else
+                        { $link->query("
+                            UPDATE prodpaqueteope
+                               SET cdgempleado = '".$prodCorte_cdgempleado."',
+                                   cdgmaquina = '".$prodCorte_cdgmaquina."'
+                             WHERE cdgpaquete = '".$prodCorte_cdgpaquete."' AND
+                                   cdgoperacion = '50001'"); }
+                      }
+                    } else
+                    { // Elimina los código excedentes
+                      $paquetesActivos = $prodPaqueteSelect->num_rows;
+
+                      for ($item = $nPaquetes; $item < $paquetesActivos; $item--)
+                      { $prodCorte_cdgpaquete = substr($prodCorte_cdgrollo,0,10).str_pad($item,2,'0',STR_PAD_LEFT);
+
+                        $link->query("
+                          DELETE FROM prodpaquete
+                           WHERE cdgpaquete = '".$prodCorte_cdgpaquete."' AND
+                                 sttpaquete = '1'");
+
+                        if ($link->affected_rows > 0)
+                        { $link->query("
+                            DELETE FROM prodpaqueteope
+                             WHERE cdgpaquete = '".$prodCorte_cdgpaquete."' AND
+                                   cdgoperacion = '50001'");
+                        } else
+                        { $msg_alert = "Es necesario desempacar el paquete '".$prodCorte_cdgpaquete."' para continuar con la actualización del registro.";
+                          break; }
+                      }
+
+                      $msg_alert = "La cantidad de paquetes resultantes del rollo fueron actualizados.";
+                    } 
+                  } 
+                }
+              } else
+              { $msg_alert .= 'La operación Corte ya fue registrada en este rollo, no tienes permisos para editar el registro.'; }
+            }
+
+            if ($regProdRollo->sttrollo == '9')
+            { $msg_alert = "Este rollo ya ha sido asignado a un empaque (Queso)."; }
+
+            $prodCorte_cdgrollo = '';
+          }
+          // Fin del proceso de salvado      
+        } else
+        { $prodCorte_cdgrollo = '';
+          $msg_alert = 'Información de rollo, incorrecta.'; }        
+      } else
+      { $prodCorte_cdgmaquina = '';
+        $msg_alert = 'Información de máquina, incorrecta.'; }
+    } else
+    { $prodCorte_cdgempleado = '';
+      $msg_alert = 'Información de empleado, incorrecta.'; }
+
+    if ($prodCorte_cdgempleado == '' OR $prodCorte_cdgmaquina == '' OR $prodCorte_cdgrollo == '')
+    { echo '
+      <div class="bloque">
+        <form id="formProdCorte" name="formProdCorte" method="post" action="prodCorte.php"/>
+          <article class="subbloque">
+            <label class="modulo_nombre">Registro del Corte</label>
+          </article>
+
+          <section class="subbloque">
+            <article>
+              <label>Operador</label><br/>
+              <input type="text" id="textCdgEmpleado" name="textCdgEmpleado" value="'.$prodCorte_idempleado.'" required/>
+            </article>
+
+            <article>
+              <label>Máquina</label><br/>
+              <input type="text" id="textCdgMaquina" name="textCdgMaquina" value="'.$prodCorte_idmaquina.'" required/>
+            </article>
+
+            <article>
+              <label>Rollo</label><br/>
+              <input type="text" id="textCdgRollo" name="textCdgRollo" value="'.$prodCorte_cdgrollo.'" required/>
+            </article>
+
+            <article><br/>
+              <input type="submit" id="bttnBuscar" name="bttnBuscar" value="Buscar" />
+            </article>
+          </section>
+        </form>  
+      </div>'; 
+    } else
+    { echo '
+      <form id="formProdCorte" name="formProdCorte" method="post" action="prodCorte.php"/>
+        <div class="bloque">
+          <input type="hidden" id="textCdgEmpleado" name="textCdgEmpleado" value="'.$prodCorte_cdgempleado.'" />
+          <input type="hidden" id="textCdgMaquina" name="textCdgMaquina" value="'.$prodCorte_cdgmaquina.'" />
+          <input type="hidden" id="textCdgRollo" name="textCdgRollo" value="'.$prodCorte_cdgrollo.'" />
+
+          <article class="subbloque">
+            <label class="modulo_nombre">Registro del Corte</label>
+          </article>
+          <a href="prodCorte.php">'.$_gearback.'</a>
+          <label>NoOP <strong>'.$prodCorte_serie.'.'.$prodCorte_noop.'</strong></label>
+
+          <section class="subbloque">
+            <article>
+              <label>Operador</label><br/>
+              <label><b>'.$prodCorte_empleado.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Máquina</label><br/>
+              <label><b>'.$prodCorte_maquina.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Lote</label><br/>
+              <label><b>'.$prodCorte_tarima.' | '.$prodCorte_idlote.'</b> Ref. <b>'.$prodCorte_lote.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Diseño</label><br/>
+              <label><b>'.$prodCorte_diseno.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Impresión</label><br/>
+              <label><b>'.$prodCorte_impresion.'</b></label>
+            </article><br/>
+
+            <article>
+              <label>Longitud</label><br/>
+              <label><strong>'.number_format($prodCorte_longitud,2).'</strong> metros</label>
+            </article>
+
+            <article>
+              <label>Ancho del sustrato</label><br/>
+              <label><strong>'.number_format($prodCorte_amplitud).' </strong> milímetros</label>
+            </article>
+
+            <article>
+              <label>Peso</label><br/>
+              <label><strong>'.number_format($prodCorte_peso,3).'</strong> kilos</label>
+            </article>
+
+            <article><br/>
+              <input type="submit" id="bttnSalvar" name="bttnSalvar" value="Salvar" />
+            </article>
+          </section>
+        </div>
+      </form>'; }
+
+     // Filtro de empleados por jornada
+    $prodPaqueteOpeSelectEmpleado = $link->query("
+      SELECT prodpaqueteope.cdgempleado, 
+             rechempleado.empleado,
+       COUNT(prodpaqueteope.cdgpaquete)
+        FROM prodpaqueteope, 
+             rechempleado
+       WHERE cdgoperacion = '50001' AND
+             prodpaqueteope.cdgempleado = rechempleado.cdgempleado AND
+             prodpaqueteope.fchmovimiento LIKE '".$prodCorte_fecha."%'
+    GROUP BY prodpaqueteope.cdgempleado
+    ORDER BY COUNT(prodpaqueteope.cdgpaquete) DESC, rechempleado.empleado");
+
+    if ($prodPaqueteOpeSelectEmpleado->num_rows > 0)
+    { $idEmpleado = 0;
+      while ($regProdEmpleado = $prodPaqueteOpeSelectEmpleado->fetch_object())
+      { $idEmpleado++;
+
+        $prodData_cdgempleado[$idEmpleado] = $regProdEmpleado->cdgempleado;
+        $prodData_empleado[$idEmpleado] = $regProdEmpleado->empleado; }
+
+      $nEmpleados = $prodPaqueteOpeSelectEmpleado->num_rows;
+
+       // Filtro de horas por jornada
+      //////////////////////////////////////
+      
+      $prodPaqueteOpeSelectHoras = $link->query("
+        SELECT CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS horas
+        FROM prodpaqueteope
+        WHERE cdgoperacion = '50001' AND
+          fchmovimiento LIKE '".$prodCorte_fecha."%'
+        GROUP BY SUBSTRING(fchmovimiento,1,14)");
+
+      if ($prodPaqueteOpeSelectHoras->num_rows > 0)
+      { $idHora = 0;
+        while ($regProdHorario = $prodPaqueteOpeSelectHoras->fetch_object())
+        { $idHora++;
+
+          $prodData_hora[$idHora] = $regProdHorario->horas; }
+
+        $num_horas = $prodPaqueteOpeSelectHoras->num_rows; 
+
+        // Filtro de produccion por jornada
+        $prodRolloOpeSelect = $link->query("
+          SELECT cdgempleado, 
+          CONCAT(SUBSTRING(fchmovimiento,12,3),'00') AS hora, 
+             SUM(longitud) AS longitud, 
+             SUM(merma) AS merma
+            FROM prodrolloope
+           WHERE cdgoperacion = '50001' AND
+                 fchmovimiento LIKE '".$prodCorte_fecha."%'
+        GROUP BY cdgempleado, 
+       SUBSTRING(fchmovimiento,1,14)");
+
+        while ($regQuery = $prodRolloOpeSelect->fetch_object())
+        { $prodData_mtrs[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->longitud;
+          $prodData_mtrsxempleado[$regQuery->cdgempleado] += $regQuery->longitud;
+          $prodData_mtrsxhora[$regQuery->hora] += $regQuery->longitud;
+          $prodData_mtrsxdia += $regQuery->longitud;
+
+          $prodData_merma[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->merma;
+          $prodData_mermaxempleado[$regQuery->cdgempleado] += $regQuery->merma;
+          $prodData_mermaxhora[$regQuery->hora] += $regQuery->merma;
+          $prodData_mermaxdia += $regQuery->merma; }
+
+        // Filtro de produccion por jornada
+        $prodPaqueteOpeSelect = $link->query("
+          SELECT prodpaqueteope.cdgempleado,
+                 prodpaquete.cdgproducto,
+          CONCAT(SUBSTRING(prodpaqueteope.fchmovimiento,12,3),'00') AS hora,
+             SUM(prodpaquete.cantidad*pdtojuego.altura) AS longitud,      
+           COUNT(prodpaqueteope.cdgpaquete) AS paquetes
+            FROM prodlote,
+                 prodloteope,
+                 prodbobina,
+                 prodrollo,
+                 prodpaquete,
+                 prodpaqueteope,
+                 pdtojuego
+          WHERE (prodlote.cdglote = prodbobina.cdglote AND            
+                 prodbobina.cdgbobina = prodrollo.cdgbobina AND
+                 prodrollo.cdgrollo = prodpaquete.cdgrollo AND
+                 prodpaquete.cdgpaquete = prodpaqueteope.cdgpaquete AND
+                 prodpaquete.sttpaquete != '0') AND
+                (prodlote.cdglote = prodloteope.cdglote AND
+                 prodloteope.cdgoperacion = '20001' AND
+                 pdtojuego.cdgjuego = prodloteope.cdgjuego) AND
+                 prodpaqueteope.fchmovimiento LIKE '".$prodCorte_fecha."%'
+        GROUP BY prodpaqueteope.cdgempleado,
+                 prodpaquete.cdgproducto,
+       SUBSTRING(prodpaqueteope.fchmovimiento,1,14)");
+
+        while ($regQuery = $prodPaqueteOpeSelect->fetch_object())
+        { $prodData_metros[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->longitud;
+          $prodData_metrosxempleado[$regQuery->cdgempleado] += $regQuery->longitud;
+          $prodData_metrosxhora[$regQuery->hora] += $regQuery->longitud;
+          $prodData_metrosxdia += $regQuery->longitud;
+
+          $prodData_paquetes[$regQuery->cdgempleado][$regQuery->hora] = $regQuery->paquetes;
+          $prodData_paquetesxempleado[$regQuery->cdgempleado] += $regQuery->paquetes;
+          $prodData_paquetesxhora[$regQuery->hora] += $regQuery->paquetes;
+          $prodData_paquetesxdia += $regQuery->paquetes; }
+      }  
+    }
+
+    echo '
+      <div class="bloque">
+        <article class="subbloque">
+          <label class="modulo_listado">Tablero de seguimiento por hora</label>
+        </article>
+
+        <section class="subbloque">    
+          <table align="center">
+            <thead>
+              <tr><td></td>';
+
+    for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+    { echo '
+                <td colspan="3"><i>'.$prodData_empleado[$idEmpleado].'</i></td>'; }
+
+    echo '
+                <td colspan="3"><td></tr>
+              <tr align="center">
+                <td><b>Horarios</b></td>';
+
+    for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+    { echo '
+                <td>Mtrs <b>I</b>n</td>
+                <td>Mtrs <b>O</b>ut</td>
+                <td>Paquetes</td>'; }
+
+    echo '
+                <td>Mtrs <b>I</b>n</td>
+                <td>Mtrs <b>O</b>ut</td>
+                <td>Paquetes</td></tr>
+            </thead>
+            <tbody>';
+
+    for ($idHora=1; $idHora<=$num_horas; $idHora++)
+    { echo '
+              <tr align="right">
+                <td>'.$prodData_hora[$idHora].'</td>';
+
+      for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+      { echo '
+                <td>'.number_format($prodData_mtrs[$prodData_cdgempleado[$idEmpleado]][$prodData_hora[$idHora]],2).'</td> 
+                <td>'.number_format($prodData_metros[$prodData_cdgempleado[$idEmpleado]][$prodData_hora[$idHora]],2).'</td> 
+                <td>'.$prodData_paquetes[$prodData_cdgempleado[$idEmpleado]][$prodData_hora[$idHora]].'</td>'; }
+
+      echo '
+                <td>'.number_format($prodData_mtrsxhora[$prodData_hora[$idHora]],2).'</td>
+                <td>'.number_format($prodData_metrosxhora[$prodData_hora[$idHora]],2).'</td>
+                <td>'.$prodData_paquetesxhora[$prodData_hora[$idHora]].'</td></tr>'; } 
+
+    echo '
+              <tr align="right"><td>Totales</td>';
+
+    for ($idEmpleado=1; $idEmpleado<=$nEmpleados; $idEmpleado++)
+    { echo '
+                <th>'.number_format($prodData_mtrsxempleado[$prodData_cdgempleado[$idEmpleado]],2).'</th>
+                <th>'.number_format($prodData_metrosxempleado[$prodData_cdgempleado[$idEmpleado]],2).'</th>
+                <th>'.$prodData_paquetesxempleado[$prodData_cdgempleado[$idEmpleado]].'</th>'; }
+
+    echo '
+                <th>'.number_format($prodData_mtrsxdia,2).'</th>
+                <th>'.number_format($prodData_metrosxdia,2).'</th>
+                <th>'.$prodData_paquetesxdia.'</th></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>'; 
+
+    if ($msg_modulo != '')
+    { echo '
+      <div align="center"><strong>'.$msg_modulo.'</strong></div>'; }       
+
+    else if ($msg_alert != '')
+    { // echo '
+     // <script type="text/javascript"> alert("'.$msg_alert.'"); </script>';
+	$msg_modulo='<a href="pdf/prodPaquetesBC.php?cdgrollo='.$mensajin.'">Generar códigos de barras</a>';
+      echo '
+      <div align="center"><strong>'.$msg_modulo.'</strong></div>'; 
+}
+  } else
+  { echo '
+      <div align="center"><h1>Módulo no encontrado o bloqueado.</h1></div>'; }
+  ?>
+    </div>
+  </body>
+</html>

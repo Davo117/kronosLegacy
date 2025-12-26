@@ -1,0 +1,193 @@
+*{
+	margin:0px;
+	padding:0px;
+	font-family:monospace;
+	font-size: 105%;
+	color:#000000;
+}
+
+body{
+
+}
+
+/*menu lateral*/
+/*Para que agarre el css,cambia el nombre en la ruta del menu,o barra,y despues recarga el navegador,al quedarse sin css se cambia el
+nombre del archivo en la carpeta css*/
+
+div#barra-lateral{
+	position:fixed;
+	width:400px;
+	height:100%;
+	/*background-color:#D8D8D8;*/
+	background-color:#979797;
+	overflow:hidden;
+	-webkit-transition:width 0.2s cubic-bezier(.61,.01,.37,1);
+}
+
+/*div#barra-lateral:hover{
+	width:230px;
+}*/
+
+div#logo-menu{
+	width:200px;
+	height:55px;
+	margin:10px;
+	background-image:url(../pictures/logo-labro2.png);
+}
+
+
+div#contenedor-logos-primero{
+	margin-top:10px;
+}
+
+div.contenedor-logos{
+	margin-top:15px;
+	margin-left:15px;
+	width:100%;
+	height:100%;
+
+	
+}
+.imgmodulo
+{
+	width:100%;
+	height:100%;
+	z-index:1;
+}
+
+div.contenedor-logos:hover
+{
+background-color: #DF7401;
+height:40px;
+width:200px;
+border-radius:0.50rem;
+-webkit-transition: color 1s ease;
+-moz-transition: color 1s ease;
+-ms-transition: color 1s ease;
+-o-transition: color 1s ease;
+transition: color 1s ease;
+}
+
+
+div.logo-personal{
+	width:40px;
+	height:40px;
+	background-image:url(../pictures/photo.png);
+	float: left;
+
+}
+
+div.logo-productos{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/design.png);
+	float: left;
+}
+div.logo-logistica{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/exchange.png);
+	float: left;
+}
+div.logo-calidad{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/certificate.png);
+	float: left;
+}
+div.logo-materiaprima{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/shopping_cart.png);
+	float: left;
+}
+div.logo-produccion{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/gear.png);
+	float: left;
+
+}
+div.logo-empaque{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/box.png);
+	float: left;
+}
+div.logo-sistema{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/game_pad.png);
+	float: left;
+
+}
+div.logo-cerrarSesion{
+	width:40px;
+	height:40px;
+	background-image:url(pictures/cerrarSesion.png);
+	float: left;
+
+}
+div.infoSesion{
+
+	 text-shadow: 1px 2px 2px #fff;
+	 font:bold 12.5px "Trebuchet MS"; 
+	text-align: center;
+	margin-top:15px;
+	margin-left:10px;
+	width:210px;
+	height:75px;
+	background-color: #A4A4A4;
+}
+
+p.title-menu{
+		 text-shadow: 1px 1px 2px gray;
+	margin-left:60px;
+	line-height:40px;
+}
+pre.title-menu{
+		 text-shadow: 1px 1px 2px gray;
+	margin-left:60px;
+	line-height: 42px;
+}
+a.title-menu{
+	margin-left:60px;
+	line-height:40px;
+}
+
+/*body*/
+
+div#body{
+	position:absolute;
+	right:0px;
+	min-height:300px;
+	left:170px;
+}
+
+div#texto{
+	width:50%;
+	min-height:300px;
+	float:left;
+}
+
+p#texto-contenedor-1{
+	font-size:25px;
+	margin:20px;
+	margin-top:10px;
+	margin-left:250px;
+	color:#595959;
+}
+
+div#foto{
+	width:50%;
+	height:300px;
+	float:right;
+}
+
+img#foto-contenedor-1{
+	margin:auto;
+	margin-top:15px;
+	margin-left:280px;
+	width:300px;
+	display:block;
+}

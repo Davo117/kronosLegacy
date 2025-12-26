@@ -1,0 +1,219 @@
+<html>
+  <head>
+  </head>
+  <body><?php
+
+  include '../../datos/mysql.php';
+
+  header("Content-Type: application/vnd.ms-excel");
+  header("Expires: 0");
+  header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+  header("content-disposition: attachment;filename=Rollos.xls"); 
+	
+  if ($_GET['cdgproducto'])
+  { $alptEmpaque_cdgproducto = $_GET['cdgproducto']; 
+
+    $link_mysqli = conectar();
+    $pdtoImpresionSelect = $link_mysqli->query("
+      SELECT * FROM pdtoimpresion
+      WHERE cdgimpresion = '".$alptEmpaque_cdgproducto."'");
+        
+    if ($pdtoImpresionSelect->num_rows > 0)
+    { $regPdtoImpresion = $pdtoImpresionSelect->fetch_object();
+
+      $pdtoImpresion_cdgproyecto = $regPdtoImpresion->cdgproyecto;
+      $pdtoImpresion_idimpresion = $regPdtoImpresion->idimpresion;
+      $pdtoImpresion_impresion = $regPdtoImpresion->impresion;      
+      $pdtoImpresion_ancho = $regPdtoImpresion->ancho;
+      $pdtoImpresion_ceja = $regPdtoImpresion->ceja;
+      $pdtoImpresion_alpaso = $regPdtoImpresion->alpaso;
+      $pdtoImpresion_tolerancia = $regPdtoImpresion->tolerancia;
+      $pdtoImpresion_corte = $regPdtoImpresion->corte;
+      $pdtoImpresion_cdgproducto = $regPdtoImpresion->cdgproducto;
+      $pdtoImpresion_cdgimpresion = $regPdtoImpresion->cdgimpresion;
+      $pdtoImpresion_sttimpresion = $regPdtoImpresion->sttimpresion; }
+
+    echo '
+    <table>
+      <tr><th colspan="11"><h1>Producto: '.$pdtoImpresion_impresion.'</h1></th></tr>
+      <tr><th></th>
+        <th>Empaque</th>
+        <th>Rollo</th>
+        <th>Metros</th>
+        <th>Suma Mts</th>
+        <th>Banderas</th>
+        <th>Kilogramos</th>
+        <th>Suma Kgs</th>
+        <th>Peso Bruto Kgs</th>
+        <th>Piezas</th>
+        <th>Suma Pzs</th></tr>';
+
+    $link_mysqli = conectar();    
+    $alptEmpaqueSelect = $link_mysqli->query("
+      SELECT * FROM alptempaque
+      WHERE cdgproducto = '".$alptEmpaque_cdgproducto."' AND
+        tpoempaque = 'Q' AND
+        (cdgembarque = '' OR sttempaque = '1')
+      ORDER BY noempaque");
+
+    while ($regAlptEmpaque = $alptEmpaqueSelect->fetch_object())
+    { $id_empaque++;
+      $alptEmpaque_cdgempaque = $regAlptEmpaque->cdgempaque;
+      $alptEmpaque_noempaque = $regAlptEmpaque->noempaque;
+      $alptEmpaque_pesobruto = $regAlptEmpaque->peso;
+
+      $link_mysqli = conectar();
+      $alptEmpaqueRSelect = $link_mysqli->query("
+        SELECT alptempaquer.nocontrol, 
+          alptempaquer.cdgrollo,
+          (prodrollo.longitud/pdtoimpresion.corte) AS cantidad,
+          prodrollo.longitud, 
+          prodrollo.peso, 
+          prodrollo.bandera
+        FROM alptempaquer, 
+          prodrollo, 
+          pdtoimpresion
+        WHERE alptempaquer.cdgrollo = prodrollo.cdgrollo AND
+          alptempaquer.cdgproducto = pdtoimpresion.cdgimpresion AND
+          alptempaquer.cdgempaque = '".$alptEmpaque_cdgempaque."' AND
+          alptempaquer.cdgproducto = '".$alptEmpaque_cdgproducto."'
+        ORDER BY alptempaquer.nocontrol");
+
+      $id_rollo = 1;
+      while ($regAlptEmpaqueR = $alptEmpaqueRSelect->fetch_object())
+      { $alptEmpaque_nocontrol[$id_rollo] = $regAlptEmpaqueR->nocontrol; 
+        $alptEmpaque_longitud[$id_rollo] = $regAlptEmpaqueR->longitud;
+        $alptEmpaque_bandera[$id_rollo] = $regAlptEmpaqueR->bandera;
+        $alptEmpaque_peso[$id_rollo] = $regAlptEmpaqueR->peso;
+        $alptEmpaque_cantidad[$id_rollo] = $regAlptEmpaqueR->cantidad;
+
+        $id_rollo++;}       
+
+      $num_rollos = $alptEmpaqueRSelect->num_rows;
+
+      echo '
+      <tr><td>'.$id_empaque.'</td>        
+        <td><h1>'.$alptEmpaque_noempaque.'</h1></td>
+        <td>';
+
+      for ($id_rollo = 1; $id_rollo <= $num_rollos; $id_rollo++)
+      { echo $alptEmpaque_nocontrol[$id_rollo].'<br/>'; } 
+
+       echo '</td>        
+        <td>';
+
+      $alptEmpaque_longitudsuma = 0; 
+      for ($id_rollo = 1; $id_rollo <= $num_rollos; $id_rollo++)
+      { echo $alptEmpaque_longitud[$id_rollo].'<br/>'; 
+
+        $alptEmpaque_longitudsuma += $alptEmpaque_longitud[$id_rollo]; } 
+
+       echo '</td>
+        <td>'.number_format($alptEmpaque_longitudsuma,2).'</td>
+        <td>';
+
+      $alptEmpaque_pesosuma = 0; 
+      for ($id_rollo = 1; $id_rollo <= $num_rollos; $id_rollo++)
+      { echo number_format($alptEmpaque_bandera[$id_rollo],3).'<br/>'; } 
+
+       echo '</td><td>';
+
+      $alptEmpaque_pesosuma = 0; 
+      for ($id_rollo = 1; $id_rollo <= $num_rollos; $id_rollo++)
+      { echo number_format($alptEmpaque_peso[$id_rollo],3).'<br/>';
+
+        $alptEmpaque_pesosuma += $alptEmpaque_peso[$id_rollo]; } 
+
+       echo '</td>
+        <td>'.number_format($alptEmpaque_pesosuma,3).'</td>
+        <td>'.number_format($alptEmpaque_pesobruto,3).'</td>
+        <td>';
+
+      $alptEmpaque_cantidadsuma = 0;
+      for ($id_rollo = 1; $id_rollo <= $num_rollos; $id_rollo++)
+      { echo number_format($alptEmpaque_cantidad[$id_rollo],3).'<br/>'; 
+
+        $alptEmpaque_cantidadsuma += $alptEmpaque_cantidad[$id_rollo]; } 
+
+       echo '</td>
+         <td>'.number_format($alptEmpaque_cantidadsuma,3).'</td></tr>'; 
+
+      $alptEmpaqueRSelect->close;
+      unset($alptEmpaque_nocontrol);
+      $num_rollos = 0; }  
+
+    $alptEmpaqueSelect->close;
+  } else
+  { echo '
+    <table>
+      <tr><th>No Lote</th>        
+        <th>Lote</th>        
+        <th>NoOP</th>        
+        <th>Proyecto</th>
+        <th>Impresion</th>
+        <th>Mezcla</th>
+        <th>Corte</th>
+        <th>Cantidad</th>
+        <th>Longitud</th>
+        <th>Amplitud</th>
+        <th>Peso</th>
+        <th>Codigo</th></tr>';
+	
+  	$link_mysqli = conectar();		
+  	$packingListSelect = $link_mysqli->query("
+      SELECT proglote.lote,
+        proglote.tarima,
+        proglote.idlote,
+        prodlote.noop,
+        prodbobina.bobina,
+        prodrollo.rollo,
+        pdtoproyecto.proyecto,
+        pdtoimpresion.impresion,
+        pdtoimpresion.corte,
+        (prodrollo.longitud/pdtoimpresion.corte) AS cantidad,
+        pdtomezcla.idmezcla,
+        pdtomezcla.mezcla,
+        prodrollo.longitud,
+        prodrollo.amplitud,
+        prodrollo.peso,
+        prodrollo.cdgrollo
+      FROM proglote,
+        prodlote,
+        prodbobina,
+        prodrollo,
+        pdtomezcla,
+        pdtoimpresion,
+        pdtoproyecto
+      WHERE (proglote.cdglote = prodlote.cdglote AND 
+        prodlote.cdglote = prodbobina.cdglote AND
+        prodbobina.cdgbobina = prodrollo.cdgbobina) AND 
+       (prodlote.cdgmezcla = pdtomezcla.cdgmezcla AND
+        pdtomezcla.cdgimpresion = pdtoimpresion.cdgimpresion AND
+        pdtoimpresion.cdgproyecto = pdtoproyecto.cdgproyecto) AND
+        prodrollo.sttrollo = '".$_GET['sttrollo']."' AND
+        prodlote.cdgmezcla = '".$_GET['cdgmezcla']."' AND
+        prodrollo.longitud > 1
+      ORDER BY prodlote.noop,
+        prodbobina.bobina,
+        prodrollo.rollo");
+    
+  	while ($regPackingList = $packingListSelect->fetch_object())
+  	{	echo '
+      <tr><td>'.$regPackingList->lote.'</td>
+        <td>'.$regPackingList->tarima.'/'.$regPackingList->idlote.'</td>
+        <td>'.$regPackingList->noop.'-'.$regPackingList->bobina.'-'.$regPackingList->rollo.'</td>
+        <td>'.$regPackingList->proyecto.'</td>
+        <td>'.$regPackingList->impresion.'</td>
+        <td>'.$regPackingList->idmezcla.'</td>
+        <td>'.$regPackingList->corte.'</td>
+        <td>'.round($regPackingList->cantidad,3).'</td>
+        <td>'.$regPackingList->longitud.'</td>
+        <td>'.$regPackingList->amplitud.'</td>
+        <td>'.$regPackingList->peso.'</td>
+        <td>*'.$regPackingList->cdgrollo.'*</td></tr>'; }		 
+  
+  }
+?>
+    </table>
+  </body>
+</html>
